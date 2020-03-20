@@ -1,20 +1,21 @@
 'use strict';
 
 const { LinValidator, Rule } = require('lin-mizar');
+const { User } = require('../models/user');
 
 class RegisterValidator extends LinValidator {
   constructor () {
     super();
-    this.username = [
-      new Rule('isNotEmpty', '用户名不可为空'),
-      new Rule('isLength', '用户名长度必须在2~20之间', 2, 20)
+    this.nickname = [
+      new Rule('isNotEmpty', '昵称不可为空'),
+      new Rule('isLength', '昵称长度必须在2~20之间', 2, 20)
     ];
-    this.group_id = new Rule('isInt', '分组id必须是整数，且大于0', {
-      min: 1
-    });
     this.email = [
       new Rule('isOptional'),
       new Rule('isEmail', '电子邮箱不符合规范，请输入正确的邮箱')
+    ];
+    this.code = [
+      new Rule('isNotEmpty', '验证码不可为空')
     ];
     this.password = [
       new Rule(
@@ -37,30 +38,81 @@ class RegisterValidator extends LinValidator {
       return [false, '两次输入的密码不一致，请重新输入'];
     }
   }
+
+  async validateEmail (vals) {
+    const email = vals.body.email;
+    const user = await User.findOne({
+      where: {
+        email,
+        delete_time: null
+      }
+    });
+    if (user) {
+      return [false, 'email已存在,请更换邮箱'];
+    } else {
+      return true;
+    }
+  }
 }
 
 class LoginValidator extends LinValidator {
   constructor () {
     super();
-    this.username = new Rule('isNotEmpty', '用户名不可为空');
+    this.email = new Rule('isNotEmpty', '邮箱不可为空');
     this.password = new Rule('isNotEmpty', '密码不可为空');
   }
 }
 
-/**
- * 更新用户信息
- */
-class UpdateInfoValidator extends LinValidator {
+class GetInformationValidator extends LinValidator {
   constructor () {
     super();
-    this.email = [
-      new Rule('isOptional'),
-      new Rule('isEmail', '电子邮箱不符合规范，请输入正确的邮箱')
-    ];
-    this.nickname = [
-      new Rule('isOptional'),
-      new Rule('isLength', '昵称长度必须在2~10之间', 2, 10)
-    ]
+    this.email = new Rule('isNotEmpty', '邮箱不可为空');
+  }
+}
+
+class VerifyValidator extends LinValidator {
+  constructor () {
+    super();
+    this.nickname = new Rule('isNotEmpty', '昵称不可为空');
+    this.email = new Rule('isNotEmpty', '邮箱不可为空');
+  }
+
+  async validateEmail (vals) {
+    const email = vals.body.email;
+    const user = await User.findOne({
+      where: {
+        email,
+        delete_time: null
+      }
+    });
+    if (user) {
+      return [false, 'email已存在,请更换邮箱'];
+    } else {
+      return true;
+    }
+  }
+}
+
+class UserSearchValidator extends LinValidator {
+  constructor () {
+    super();
+    this.q = new Rule('isNotEmpty', '必须传入搜索关键字');
+  }
+}
+
+class CreateOrUpdateUserValidator extends LinValidator {
+  constructor () {
+    super();
+    this.nickname = new Rule('isNotEmpty', '必须传入昵称');
+    this.email = new Rule('isNotEmpty', '必须传入邮箱');
+    this.password = new Rule('isNotEmpty', '必须传入密码');
+  }
+}
+
+class AvatarUpdateValidator extends LinValidator {
+  constructor () {
+    super();
+    this.avatar = new Rule('isNotEmpty', '必须传入头像的url链接');
   }
 }
 
@@ -89,17 +141,13 @@ class ChangePasswordValidator extends LinValidator {
   }
 }
 
-class AvatarUpdateValidator extends LinValidator {
-  constructor () {
-    super();
-    this.avatar = new Rule('isNotEmpty', '必须传入头像的url链接');
-  }
-}
-
 module.exports = {
-  ChangePasswordValidator,
-  UpdateInfoValidator,
-  LoginValidator,
   RegisterValidator,
-  AvatarUpdateValidator
+  LoginValidator,
+  VerifyValidator,
+  GetInformationValidator,
+  CreateOrUpdateUserValidator,
+  UserSearchValidator,
+  AvatarUpdateValidator,
+  ChangePasswordValidator
 };

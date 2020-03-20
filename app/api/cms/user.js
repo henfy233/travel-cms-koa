@@ -17,9 +17,9 @@ const {
   UpdateInfoValidator,
   ChangePasswordValidator,
   AvatarUpdateValidator
-} = require('../../validators/user');
+} = require('../../validators/lin-user');
 
-const { UserDao } = require('../../dao/user');
+const { UserDao } = require('../../dao/lin-user');
 
 const user = new LinRouter({
   prefix: '/cms/user'
@@ -36,7 +36,7 @@ user.linPost(
     mount: false
   },
   adminRequired,
-  logger('管理员新建了一个用户'),
+  logger('管理员新建了一个CMS用户'),
   async ctx => {
     const v = await new RegisterValidator().validate(ctx);
     await userDao.createUser(ctx, v);

@@ -1,15 +1,18 @@
 'use strict';
 
-const { LinRouter, ParametersException, loginRequired } = require('lin-mizar');
+const { LinRouter, ParametersException } = require('lin-mizar');
+const {
+  loginRequire
+} = require('../../libs/jwt');
 const { LocalUploader } = require('../../extensions/file/local-uploader');
 const { PositiveIdValidator } = require('../../validators/common');
 const { db } = require('lin-mizar/lin/db');
 
 const file = new LinRouter({
-  prefix: '/cms/file'
+  prefix: '/v1/file'
 });
 
-file.linPost('upload', '/', {}, loginRequired, async ctx => {
+file.linPost('upload', '/', {}, loginRequire, async ctx => {
   const files = await ctx.multipart();
   if (files.length < 1) {
     throw new ParametersException({ msg: '未找到符合条件的文件资源' });
@@ -19,7 +22,7 @@ file.linPost('upload', '/', {}, loginRequired, async ctx => {
   ctx.json(arr);
 });
 
-file.linGet('get', '/:id', {}, loginRequired, async ctx => {
+file.linGet('get', '/:id', {}, loginRequire, async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');
   const images = await db.query(

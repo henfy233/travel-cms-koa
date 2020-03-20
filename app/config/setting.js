@@ -1,14 +1,27 @@
+// 基础配置
 'use strict';
 
 module.exports = {
+  // 端口号
   port: 5000,
+  // 本后端地址端口
   siteDomain: 'http://localhost:5000',
+  // 分页参数，每页的个数
   countDefault: 10,
+  // 分页参数，默认的开始页
   pageDefault: 0,
+  // api目录，默认从 app/api目录中自动加载所有api
   apiDir: 'app/api',
-  accessExp: 60 * 60, // 1h 单位秒
   // debug 模式
   debug: true,
+  // ---前台页面设置----
+  // access token 的过期时间 默认 1 个小时 1h 单位秒
+  aExp: 60 * 60,
+  // refreshExp 设置refresh_token的过期时间，默认一个月
+  rExp: 60 * 60 * 24 * 30,
+  // ---后台管理页面设置----
+  // access token 的过期时间 默认 1 个小时 1h 单位秒
+  accessExp: 60 * 60,
   // refreshExp 设置refresh_token的过期时间，默认一个月
   refreshExp: 60 * 60 * 24 * 30,
   // 暂不启用插件
