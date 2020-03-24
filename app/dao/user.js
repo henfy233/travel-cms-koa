@@ -26,6 +26,10 @@ class UserDao {
   //   return user;
   // }
 
+  /**
+   * 根据ID获取用户信息
+   * @param {int} id 用户ID
+   */
   async getUser (id) {
     const user = await User.findOne({
       where: {
@@ -95,7 +99,7 @@ class UserDao {
   async updateUser (ctx, v) {
     let user = ctx.currentUser;
     user.nickname = v.get('body.nickname');
-    user.city = JSON.stringify(v.get('body.city'));
+    user.city = v.get('body.city');
     user.sex = v.get('body.sex');
     user.introduce = v.get('body.introduce');
     user.save();

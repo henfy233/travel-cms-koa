@@ -5,44 +5,44 @@ const { merge } = require('lodash');
 const { Sequelize, Model } = require('sequelize');
 const { db } = require('lin-mizar/lin/db');
 
-class Favor extends Model {
+class Around extends Model {
   toJSON () {
     let origin = {
-      eid: this.eid,
-      art_id: this.art_id,
-      type: this.type,
+      id: this.id,
+      sid: this.sid,
+      aid: this.aid,
       create_time: this.createTime
     };
     return origin;
   }
 }
 
-Favor.init(
+Around.init(
   {
-    eid: {
+    id: {
       type: Sequelize.INTEGER,
-      allowNull: false,
-      comment: '用户ID'
+      primaryKey: true,
+      autoIncrement: true
     },
-    art_id: {
+    sid: {
       type: Sequelize.INTEGER,
       allowNull: false,
-      comment: '类型ID'
+      comment: '旅游地ID'
     },
-    type: {
+    aid: {
       type: Sequelize.INTEGER,
       allowNull: false,
-      comment: '类型'
+      comment: '关联旅游地ID'
     }
   },
   merge(
     {
-      tableName: 'favor',
-      modelName: 'favor',
+      tableName: 'around',
+      modelName: 'around',
       sequelize: db
     },
     InfoCrudMixin.options
   )
 );
 
-module.exports = { Favor };
+module.exports = { Around };

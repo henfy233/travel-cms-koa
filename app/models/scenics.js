@@ -12,6 +12,7 @@ class Scenics extends Model {
       name: this.name,
       position: this.position,
       image: this.image,
+      praise: this.praise,
       create_time: this.createTime
     };
     return origin;
@@ -27,15 +28,24 @@ Scenics.init(
     },
     name: {
       type: Sequelize.STRING(20),
-      allowNull: false
+      allowNull: false,
+      comment: '旅游地名字'
     },
     position: {
       type: Sequelize.STRING(30),
-      allowNull: false
+      allowNull: false,
+      comment: '旅游地经纬度'
     },
     image: {
       type: Sequelize.STRING(100),
-      allowNull: true
+      allowNull: true,
+      comment: '旅游地封面url'
+    },
+    praise: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '点赞数'
     }
   },
   merge(

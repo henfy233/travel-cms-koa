@@ -66,7 +66,10 @@ class LoginValidator extends LinValidator {
 class GetInformationValidator extends LinValidator {
   constructor () {
     super();
-    this.email = new Rule('isNotEmpty', '邮箱不可为空');
+    this.nickname = new Rule('isNotEmpty', '昵称不可为空');
+    this.city = new Rule('isNotEmpty', '城市不可为空');
+    this.sex = new Rule('isNotEmpty', '性别不可为空');
+    this.introduce = new Rule('isNotEmpty', '介绍不可为空');
   }
 }
 

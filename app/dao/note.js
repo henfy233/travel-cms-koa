@@ -7,12 +7,18 @@ const { User } = require('../models/user');
 const Sequelize = require('sequelize');
 
 class NoteDao {
+  /**
+   * 根据页数获取游记
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
   async getNotes (ctx, start, count1) {
     let sql =
-      'SELECT note.*,user.`nickname`,user.`avatar` FROM note LEFT JOIN user ON note.eId = user.id WHERE';
+      'SELECT note.*,user.`nickname`,user.`avatar`,favor.`id` as liked FROM note LEFT JOIN favor ON note.id = favor.art_id LEFT JOIN user ON note.eId = user.id WHERE';
     let notes = await db.query(
       sql +
-        ' note.delete_time IS NULL LIMIT :count OFFSET :start ',
+        ' note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,

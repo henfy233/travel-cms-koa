@@ -24,16 +24,22 @@ const scenicsApi = new LinRouter({
 // scenics 的dao 数据库访问层实例
 const scenicsDto = new ScenicsDao();
 
+/**
+ * 根据ID获取旅行地
+ */
 scenicsApi.get('/:id', async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');
-  const scenics = await scenicsDto.getScenics(id);
+  const { scenics, arounds } = await scenicsDto.getScenics(id);
   if (!scenics) {
     throw new NotFound({
       msg: '没有找到相关旅游地'
     });
   }
-  ctx.json(scenics);
+  ctx.json({
+    scenics,
+    arounds
+  });
 });
 
 scenicsApi.get('/', async ctx => {

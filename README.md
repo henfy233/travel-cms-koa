@@ -6,7 +6,6 @@
 </h1>
 
 <h4 align="center">一个简单易用的CMS后端项目 | <a href="http://doc.cms.7yue.pro/" target="_blank">Lin-CMS-Koa</a></h4>
-
 <p align="center">
   <a href="http://flask.pocoo.org/docs/1.0/" rel="nofollow">
   <img src="https://img.shields.io/badge/koa-2.7.0-green.svg" alt="flask version" data-canonical-src="https://img.shields.io/badge/koa-2.7.0-green.svg" style="max-width:100%;"></a>
@@ -122,3 +121,4 @@ iView 等。你甚至可以混搭使用。当然，前提是这些组件库是�
 #### 完善的文档
 
 我们将提供详尽的文档来帮助开发者使用 Lin
+

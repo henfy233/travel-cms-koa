@@ -260,21 +260,6 @@ userApi.put('/avatar', loginRequire, async ctx => {
   ctx.success({ msg: '更新头像成功' });
 });
 
-// userApi.linGet(
-//   'userGetAuths',
-//   '/auths',
-//   {
-//     auth: '查询自己拥有的信息与权限',
-//     module: '用户',
-//     mount: false
-//   },
-//   loginRequired,
-//   async ctx => {
-//     let user = await UserDao.getAuths(ctx);
-//     ctx.json(user);
-//   }
-// );
-
 userApi.get('/:id', async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');

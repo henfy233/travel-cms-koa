@@ -2,9 +2,14 @@
 
 const { NotFound, Forbidden } = require('lin-mizar');
 const { Scenics } = require('../models/scenics');
+const { Around } = require('../models/around');
 const Sequelize = require('sequelize');
 
 class ScenicsDao {
+  /**
+   * 根据ID获取旅行地
+   * @param {int} id 旅行地ID
+   */
   async getScenics (id) {
     const scenics = await Scenics.findOne({
       where: {
@@ -12,7 +17,26 @@ class ScenicsDao {
         delete_time: null
       }
     });
-    return scenics;
+    let arounds = await Around.findAll({
+      attributes: [
+        Sequelize.col('s.id'),
+        Sequelize.col('s.name'),
+        Sequelize.col('s.image')
+      ],
+      where: {
+        sid: scenics.id,
+        delete_time: null
+      },
+      include: [{
+        association: AroundBelongsToScenics,
+        attributes: []
+      }],
+      raw: true
+    });
+    return {
+      scenics,
+      arounds
+    };
   }
 
   async getScenicsByKeyword (q) {
@@ -86,5 +110,10 @@ class ScenicsDao {
     scenics.destroy();
   }
 }
+
+const AroundBelongsToScenics = Around.belongsTo(Scenics, {
+  // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
+  foreignKey: 'aid', targetKey: 'id', as: 's'
+});
 
 module.exports = { ScenicsDao };
