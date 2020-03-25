@@ -19,7 +19,15 @@ class CreateOrUpdateGuideValidator extends LinValidator {
   }
 }
 
+class PositiveNumValidator extends LinValidator {
+  constructor () {
+    super();
+    this.num = new Rule('isInt', 'num必须为正整数', { min: 1 });
+  }
+}
+
 module.exports = {
   CreateOrUpdateGuideValidator,
-  GuideSearchValidator
+  GuideSearchValidator,
+  PositiveNumValidator
 };

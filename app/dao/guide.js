@@ -3,22 +3,20 @@
 const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Guide } = require('../models/guide');
-// const { User } = require('../models/user');
 const Sequelize = require('sequelize');
 
 class GuideDao {
   /**
    * 根据页数获取攻略
-   * @param {Object} ctx 用户信息
    * @param {int} start 从第几条开始
    * @param {int} count1 每页多少条记录
    */
-  async getGuides (ctx, start, count1) {
+  async getGuides (start, count1) {
     let sql =
-      'SELECT guide.*,user.`nickname`,user.`avatar`,favor.`id` as liked FROM guide LEFT JOIN favor ON guide.id = favor.art_id LEFT JOIN user ON guide.eId = user.id WHERE';
+      'SELECT guide.*,user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
     let guides = await db.query(
       sql +
-        ' guide.delete_time IS NULL Order By guide.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL Order By guide.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -45,12 +43,27 @@ class GuideDao {
   }
 
   /**
+   * 发布攻略
+   * @param {Object} ctx 用户信息
+   * @param {Object} v 发布攻略信息
+   */
+  async postGuide (ctx, v) {
+    const user = ctx.currentUser;
+    const bk = new Guide();
+    bk.title = v.get('body.title');
+    bk.eid = user.id;
+    bk.img = v.get('body.img');
+    bk.text = v.get('body.text');
+    bk.save();
+  }
+
+  /**
    * 根据ID获取攻略
    * @param {int} id ID号
    */
   async getGuide (id) {
     let sql =
-      'SELECT guide.*,user.`nickname`,user.`avatar` FROM guide LEFT JOIN user ON guide.eId = user.id WHERE';
+      'SELECT guide.*,user.`nickname`,user.`avatar` FROM guide LEFT JOIN user ON guide.eid = user.id WHERE';
     let guide = await db.query(
       sql +
         ' guide.delete_time IS NULL AND guide.id = :id ',
@@ -69,6 +82,10 @@ class GuideDao {
     return guide[0];
   }
 
+  /**
+   * 根据匹配文本查找攻略
+   * @param {String} q 匹配文本
+   */
   async getGuideByKeyword (q) {
     const guide = await Guide.findOne({
       where: {
@@ -82,45 +99,106 @@ class GuideDao {
   }
 
   /**
-   * 获取所有攻略
+   * 获取最火攻略
+   * @param {object} v 攻略数量
    */
-  // async getGuides () {
-  //   let guides = await Guide.findAll({
-  //     attributes: [
-  //       'id',
-  //       'title',
-  //       'img',
-  //       'praise',
-  //       'text',
-  //       'create_time',
-  //       Sequelize.col('u.nickname'),
-  //       Sequelize.col('u.avatar')
-  //     ],
-  //     where: {
-  //       delete_time: null
-  //     },
-  //     include: [
-  //       {
-  //         // 这里再传入他，这个对象只是类似一个工厂函数，实际查询的时候findAll会找到最新的结果
-  //         association: GuideBelongsToUser,
-  //         attributes: []
-  //       }
-  //     ],
-  //     limit: 3,
-  //     raw: true
-  //   });
-  //   return guides;
-  // }
+  async getHotGuides (v) {
+    const num = v.get('body.num');
+    let sql =
+      'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+    let guides = await db.query(
+      sql +
+        ' LEFT JOIN user ON guide.eid = user.id WHERE  guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
+      {
+        replacements: {
+          count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return guides;
+  }
 
+  /**
+   * 根据页数获取攻略
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getLoginGuides (ctx, start, count1) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT guide.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+    let guides = await db.query(
+      sql +
+        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL Order By guide.create_time Desc LIMIT :count OFFSET :start',
+      {
+        replacements: {
+          id: user.id,
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql1 =
+      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
+    });
+    guides.map(guides => {
+      unsets(guides, ['update_time', 'delete_time']);
+      // guides.create_time = dayjs(guides.create_time).unix();
+      return guides;
+    });
+    total = total[0]['count'];
+    return {
+      guides,
+      total
+    };
+  }
+
+  /**
+   * 获取最火攻略
+   * @param {Object} ctx 用户信息
+   * @param {object} v 攻略数量
+   */
+  async getLoginHotGuides (ctx, v) {
+    const num = v.get('body.num');
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+    let guides = await db.query(
+      sql +
+        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE  guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
+      {
+        replacements: {
+          id: user.id,
+          count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return guides;
+  }
+
+  /**
+   * 创建攻略
+   * @param {Object} v 信息
+   */
   async createGuide (v) {
     const bk = new Guide();
-    bk.title = v.get('body.title');
-    bk.email = v.get('body.email');
-    bk.imageId = v.get('body.imageId');
-    bk.content = v.get('body.content');
+    bk.name = v.get('body.name');
+    bk.position = v.get('body.position');
+    bk.image = v.get('body.image');
     bk.save();
   }
 
+  /**
+   * 更新攻略
+   * @param {Object} v 信息
+   * @param {int} id ID号
+   */
   async updateGuide (v, id) {
     const guide = await Guide.findByPk(id);
     if (!guide) {
@@ -128,13 +206,16 @@ class GuideDao {
         msg: '没有找到相关攻略'
       });
     }
-    guide.title = v.get('body.title');
-    guide.email = v.get('body.email');
-    guide.imageId = v.get('body.imageId');
-    guide.content = v.get('body.content');
+    guide.name = v.get('body.name');
+    guide.position = v.get('body.position');
+    guide.image = v.get('body.image');
     guide.save();
   }
 
+  /**
+   * 删除攻略
+   * @param {int} id ID号
+   */
   async deleteGuide (id) {
     const guide = await Guide.findOne({
       where: {
@@ -153,7 +234,7 @@ class GuideDao {
 
 // const GuideBelongsToUser = Guide.belongsTo(User, {
 //   // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
-//   foreignKey: 'eId', targetKey: 'id', as: 'u'
+//   foreignKey: eid', targetKey: 'id', as: 'u'
 // });
 
 module.exports = { GuideDao };

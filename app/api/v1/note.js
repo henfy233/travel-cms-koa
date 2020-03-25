@@ -54,7 +54,6 @@ noteApi.linPost(
 noteApi.get('/notes', async ctx => {
   const v = await new PaginateValidator().validate(ctx);
   const { notes, total } = await noteDto.getNotes(
-    ctx,
     v.get('query.page'),
     v.get('query.count')
   );
@@ -68,9 +67,9 @@ noteApi.get('/notes', async ctx => {
 });
 
 /**
- * 获取几个最火游记
+ * 获取几个最火游记 num个
  */
-noteApi.post('/getHotNotes', async ctx => {
+noteApi.post('/hotNotes', async ctx => {
   const v = await new PositiveNumValidator().validate(ctx);
   const notes = await noteDto.getHotNotes(v);
   if (!notes || notes.length < 1) {
@@ -81,6 +80,52 @@ noteApi.post('/getHotNotes', async ctx => {
   ctx.json(notes);
 });
 
+noteApi.linGet(
+  'getAllNotes',
+  '/login/notes',
+  {
+    auth: '获取所有游记',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PaginateValidator().validate(ctx);
+    const { notes, total } = await noteDto.getLoginNotes(
+      ctx,
+      v.get('query.page'),
+      v.get('query.count')
+    );
+    ctx.json({
+      items: notes,
+      total: total,
+      page: v.get('query.page'),
+      count: v.get('query.count'),
+      total_page: Math.ceil(total / parseInt(v.get('query.count')))
+    });
+  }
+);
+
+noteApi.linPost(
+  'getHotNotes',
+  '/login/hotNotes',
+  {
+    auth: '发布游记',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveNumValidator().validate(ctx);
+    const notes = await noteDto.getLoginHotNotes(ctx, v);
+    if (!notes || notes.length < 1) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    ctx.json(notes);
+  }
+);
 /**
  * 根据ID值获取游记
  */

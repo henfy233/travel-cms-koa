@@ -3,22 +3,20 @@
 const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Note } = require('../models/note');
-const { User } = require('../models/user');
 const Sequelize = require('sequelize');
 
 class NoteDao {
   /**
    * 根据页数获取游记
-   * @param {Object} ctx 用户信息
    * @param {int} start 从第几条开始
    * @param {int} count1 每页多少条记录
    */
-  async getNotes (ctx, start, count1) {
+  async getNotes (start, count1) {
     let sql =
-      'SELECT note.*,user.`nickname`,user.`avatar`,favor.`id` as liked FROM note LEFT JOIN favor ON note.id = favor.art_id LEFT JOIN user ON note.eId = user.id WHERE';
+      'SELECT note.*,user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
     let notes = await db.query(
       sql +
-        ' note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -53,7 +51,7 @@ class NoteDao {
     const user = ctx.currentUser;
     const bk = new Note();
     bk.title = v.get('body.title');
-    bk.eId = user.id;
+    bk.eid = user.id;
     bk.img = v.get('body.img');
     bk.text = v.get('body.text');
     bk.save();
@@ -65,7 +63,7 @@ class NoteDao {
    */
   async getNote (id) {
     let sql =
-      'SELECT note.*,user.`nickname`,user.`avatar` FROM note LEFT JOIN user ON note.eId = user.id WHERE';
+      'SELECT note.*,user.`nickname`,user.`avatar` FROM note LEFT JOIN user ON note.eid = user.id WHERE';
     let note = await db.query(
       sql +
         ' note.delete_time IS NULL AND note.id = :id ',
@@ -101,68 +99,86 @@ class NoteDao {
   }
 
   /**
-   * 获取所有游记
-   */
-  // async getNotes () {
-  //   let notes = await Note.findAll({
-  //     attributes: [
-  //       'id',
-  //       'title',
-  //       'img',
-  //       'praise',
-  //       'text',
-  //       'create_time',
-  //       Sequelize.col('u.nickname'),
-  //       Sequelize.col('u.avatar')
-  //     ],
-  //     where: {
-  //       delete_time: null
-  //     },
-  //     order: [
-  //       ['create_time', 'DESC']
-  //     ],
-  //     include: [
-  //       {
-  //         // 这里再传入他，这个对象只是类似一个工厂函数，实际查询的时候findAll会找到最新的结果
-  //         association: NoteBelongsToUser,
-  //         attributes: []
-  //       }
-  //     ],
-  //     raw: true
-  //   });
-  //   return notes;
-  // }
-
-  /**
    * 获取最火游记
    * @param {object} v 游记数量
    */
   async getHotNotes (v) {
     const num = v.get('body.num');
-    let notes = await Note.findAll({
-      attributes: [
-        'id',
-        'title',
-        'img',
-        'praise',
-        'text',
-        'create_time',
-        Sequelize.col('u.nickname'),
-        Sequelize.col('u.avatar')
-      ],
-      where: {
-        delete_time: null
-      },
-      include: [
-        {
-          // 这里再传入他，这个对象只是类似一个工厂函数，实际查询的时候findAll会找到最新的结果
-          association: NoteBelongsToUser,
-          attributes: []
-        }
-      ],
-      limit: num,
-      raw: true
+    let sql =
+      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+    let notes = await db.query(
+      sql +
+        ' LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL Order By note.praise Desc LIMIT :count ',
+      {
+        replacements: {
+          count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return notes;
+  }
+
+  /**
+   * 根据页数获取游记
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getLoginNotes (ctx, start, count1) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT note.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+    let notes = await db.query(
+      sql +
+        ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
+      {
+        replacements: {
+          id: user.id,
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql1 =
+      'SELECT COUNT(*) as count FROM note WHERE note.delete_time IS NULL';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
     });
+    notes.map(notes => {
+      unsets(notes, ['update_time', 'delete_time']);
+      // notes.create_time = dayjs(notes.create_time).unix();
+      return notes;
+    });
+    total = total[0]['count'];
+    return {
+      notes,
+      total
+    };
+  }
+
+  /**
+   * 获取最火游记
+   * @param {Object} ctx 用户信息
+   * @param {object} v 游记数量
+   */
+  async getLoginHotNotes (ctx, v) {
+    const num = v.get('body.num');
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+    let notes = await db.query(
+      sql +
+        ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL Order By note.praise Desc LIMIT :count ',
+      {
+        replacements: {
+          id: user.id,
+          count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
     return notes;
   }
 
@@ -216,9 +232,9 @@ class NoteDao {
   }
 }
 
-const NoteBelongsToUser = Note.belongsTo(User, {
-  // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
-  foreignKey: 'eId', targetKey: 'id', as: 'u'
-});
+// const NoteBelongsToUser = Note.belongsTo(User, {
+//   // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
+//   foreignKey: eid', targetKey: 'id', as: 'u'
+// });
 
 module.exports = { NoteDao };

@@ -33,7 +33,7 @@ Note.init(
       allowNull: false,
       comment: '标题'
     },
-    eId: {
+    eid: {
       type: Sequelize.STRING(100),
       allowNull: false,
       comment: '用户ID'
