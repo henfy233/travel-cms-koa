@@ -110,7 +110,7 @@ noteApi.linPost(
   'getHotNotes',
   '/login/hotNotes',
   {
-    auth: '发布游记',
+    auth: '获取最火游记',
     module: '用户',
     mount: false
   },
@@ -126,6 +126,27 @@ noteApi.linPost(
     ctx.json(notes);
   }
 );
+
+noteApi.linGet(
+  'getMyNotes',
+  '/myNotes',
+  {
+    auth: '获取我的游记',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const notes = await noteDto.getMyNotes(ctx);
+    if (!notes || notes.length < 1) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    ctx.json(notes);
+  }
+);
+
 /**
  * 根据ID值获取游记
  */

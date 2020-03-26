@@ -18,6 +18,7 @@ class User extends Model {
       city: this.city,
       sex: this.sex,
       introduce: this.introduce,
+      fans: this.fans,
       password: this.password,
       create_time: this.createTime
     };
@@ -103,6 +104,30 @@ User.init(
       type: Sequelize.STRING(200),
       allowNull: true,
       comment: '简介'
+    },
+    notes: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '游记数'
+    },
+    guides: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '攻略数'
+    },
+    fans: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '粉丝数'
+    },
+    follows: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '关注数'
     },
     password: {
       type: Sequelize.STRING(100),

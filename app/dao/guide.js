@@ -49,12 +49,20 @@ class GuideDao {
    */
   async postGuide (ctx, v) {
     const user = ctx.currentUser;
-    const bk = new Guide();
-    bk.title = v.get('body.title');
-    bk.eid = user.id;
-    bk.img = v.get('body.img');
-    bk.text = v.get('body.text');
-    bk.save();
+    return db.transaction(async t => {
+      await Guide.create({
+        title: v.get('body.title'),
+        eid: user.id,
+        img: v.get('body.img'),
+        text: v.get('body.text')
+      }, {
+        transaction: t
+      });
+      await user.increment('guides', {
+        by: 1,
+        transaction: t
+      });
+    });
   }
 
   /**
@@ -80,6 +88,27 @@ class GuideDao {
       return guide;
     });
     return guide[0];
+  }
+
+  /**
+   * 获取我的攻略
+   * @param {object} ctx 用户信息
+   */
+  async getMyGuides (ctx) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide, user ';
+    let guides = await db.query(
+      sql +
+        ' WHERE guide.eid = `user`.id AND `user`.id = :id AND guide.delete_time IS NULL Order By guide.create_time Desc ',
+      {
+        replacements: {
+          id: user.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return guides;
   }
 
   /**

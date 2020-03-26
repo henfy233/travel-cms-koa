@@ -260,17 +260,63 @@ userApi.put('/avatar', loginRequire, async ctx => {
   ctx.success({ msg: '更新头像成功' });
 });
 
-userApi.get('/:id', async ctx => {
-  const v = await new PositiveIdValidator().validate(ctx);
-  const id = v.get('path.id');
-  const user = await userDto.getUser(id);
-  if (!user) {
-    throw new NotFound({
-      msg: '没有找到相关用户'
+userApi.linPost(
+  'follow',
+  '/follow',
+  {
+    auth: '关注用户',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    await userDto.follow(ctx, v);
+    ctx.success({
+      msg: '关注成功'
     });
   }
-  ctx.json(user);
-});
+);
+
+userApi.linPost(
+  'unfollow',
+  '/unfollow',
+  {
+    auth: '取消关注用户',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    await userDto.unfollow(ctx, v);
+    ctx.success({
+      msg: '取消关注成功'
+    });
+  }
+);
+
+userApi.linGet(
+  'getUser',
+  '/:id',
+  {
+    auth: '根据ID获取用户',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    const user = await userDto.getUser(ctx, id);
+    if (!user) {
+      throw new NotFound({
+        msg: '没有找到相关用户'
+      });
+    }
+    ctx.json(user);
+  }
+);
 
 userApi.get('/', async ctx => {
   const users = await userDto.getUsers();

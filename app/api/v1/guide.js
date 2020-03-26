@@ -126,6 +126,27 @@ guideApi.linPost(
     ctx.json(guides);
   }
 );
+
+guideApi.linGet(
+  'getMyGuides',
+  '/myGuides',
+  {
+    auth: '获取我的游记',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const guides = await guideDto.getMyGuides(ctx);
+    if (!guides || guides.length < 1) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    ctx.json(guides);
+  }
+);
+
 /**
  * 根据ID值获取攻略
  */

@@ -49,12 +49,20 @@ class NoteDao {
    */
   async postNote (ctx, v) {
     const user = ctx.currentUser;
-    const bk = new Note();
-    bk.title = v.get('body.title');
-    bk.eid = user.id;
-    bk.img = v.get('body.img');
-    bk.text = v.get('body.text');
-    bk.save();
+    return db.transaction(async t => {
+      await Note.create({
+        title: v.get('body.title'),
+        eid: user.id,
+        img: v.get('body.img'),
+        text: v.get('body.text')
+      }, {
+        transaction: t
+      });
+      await user.increment('notes', {
+        by: 1,
+        transaction: t
+      });
+    });
   }
 
   /**
@@ -175,6 +183,27 @@ class NoteDao {
         replacements: {
           id: user.id,
           count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return notes;
+  }
+
+  /**
+   * 获取我的游记
+   * @param {object} ctx 用户信息
+   */
+  async getMyNotes (ctx) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note, user ';
+    let notes = await db.query(
+      sql +
+        ' WHERE note.eid = `user`.id AND `user`.id = :id AND note.delete_time IS NULL Order By note.create_time Desc ',
+      {
+        replacements: {
+          id: user.id
         },
         type: db.QueryTypes.SELECT
       }
