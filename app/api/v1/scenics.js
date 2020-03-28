@@ -8,11 +8,10 @@ const {
 } = require('lin-mizar');
 const { getSafeParamId } = require('../../libs/util');
 const {
-  // ScenicsSearchValidator,
   CreateOrUpdateScenicsValidator
 } = require('../../validators/scenics');
 
-const { PositiveIdValidator } = require('../../validators/common');
+const { PositiveIdValidator, SearchValidator } = require('../../validators/common');
 
 const { ScenicsDao } = require('../../dao/scenics');
 
@@ -23,6 +22,38 @@ const scenicsApi = new LinRouter({
 
 // scenics 的dao 数据库访问层实例
 const scenicsDto = new ScenicsDao();
+
+scenicsApi.get('/', async ctx => {
+  const scenics = await scenicsDto.getAllScenics();
+  if (!scenics || scenics.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关旅游地'
+    });
+  }
+  ctx.json(scenics);
+});
+
+scenicsApi.get('/search', async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const scenics = await scenicsDto.getScenicsByKeyword(v.get('query.q'));
+  if (!scenics || scenics.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关旅游地'
+    });
+  }
+  ctx.json(scenics);
+});
+
+scenicsApi.get('/hotScenics', async ctx => {
+  const num = 3;
+  const scenics = await scenicsDto.getHotScenics(num);
+  if (!scenics || scenics.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关旅游地'
+    });
+  }
+  ctx.json(scenics);
+});
 
 /**
  * 根据ID获取旅行地
@@ -41,25 +72,6 @@ scenicsApi.get('/:id', async ctx => {
     arounds
   });
 });
-
-scenicsApi.get('/', async ctx => {
-  const scenics = await scenicsDto.getAllScenics();
-  // if (!books || books.length < 1) {
-  //   throw new NotFound({
-  //     msg: '没有找到相关书籍'
-  //   });
-  // }
-  ctx.json(scenics);
-});
-
-// bookApi.get('/search/one', async ctx => {
-//   const v = await new BookSearchValidator().validate(ctx);
-//   const book = await bookDto.getBookByKeyword(v.get('query.q'));
-//   if (!book) {
-//     throw new BookNotFound();
-//   }
-//   ctx.json(book);
-// });
 
 scenicsApi.post('/', async ctx => {
   const v = await new CreateOrUpdateScenicsValidator().validate(ctx);

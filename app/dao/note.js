@@ -3,7 +3,6 @@
 const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Note } = require('../models/note');
-const Sequelize = require('sequelize');
 
 class NoteDao {
   /**
@@ -88,22 +87,6 @@ class NoteDao {
       return note;
     });
     return note[0];
-  }
-
-  /**
-   * 根据匹配文本查找游记
-   * @param {String} q 匹配文本
-   */
-  async getNoteByKeyword (q) {
-    const note = await Note.findOne({
-      where: {
-        title: {
-          [Sequelize.Op.like]: `%${q}%`
-        },
-        delete_time: null
-      }
-    });
-    return note;
   }
 
   /**
@@ -197,13 +180,33 @@ class NoteDao {
   async getMyNotes (ctx) {
     const user = ctx.currentUser;
     let sql =
-      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note, user ';
+      'SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
     let notes = await db.query(
       sql +
-        ' WHERE note.eid = `user`.id AND `user`.id = :id AND note.delete_time IS NULL Order By note.create_time Desc ',
+        ' WHERE n.eid = u.id AND u.id = :id AND n.delete_time IS NULL Order By n.create_time Desc ',
       {
         replacements: {
           id: user.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return notes;
+  }
+
+  /**
+   * 根据匹配文本查找游记
+   * @param {String} q 匹配文本
+   */
+  async getNoteByKeyword (q) {
+    let sql =
+    'SELECT n.id, n.title, n.eid, n.img, n.praise, n.text, n.create_time,  u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
+    let notes = await db.query(
+      sql +
+        ' WHERE n.eid = u.id AND n.delete_time IS NULL AND n.title LIKE :q Order By n.create_time Desc ',
+      {
+        replacements: {
+          q: '%' + q + '%'
         },
         type: db.QueryTypes.SELECT
       }

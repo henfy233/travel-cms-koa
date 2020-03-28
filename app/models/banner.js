@@ -6,22 +6,21 @@ const { Sequelize, Model } = require('sequelize');
 const { db } = require('lin-mizar/lin/db');
 const config = require('../config/setting');
 
-class Note extends Model {
+class Banner extends Model {
   toJSON () {
     let origin = {
       id: this.id,
       title: this.title,
-      eId: this.eId,
       img: this.img,
-      praise: this.praise,
-      text: this.text,
+      url: this.url,
+      date: this.date,
       create_time: this.createTime
     };
     return origin;
   }
 }
 
-Note.init(
+Banner.init(
   {
     id: {
       type: Sequelize.INTEGER,
@@ -33,39 +32,33 @@ Note.init(
       allowNull: false,
       comment: '标题'
     },
-    eid: {
-      type: Sequelize.INTEGER,
-      allowNull: false,
-      comment: '用户ID'
-    },
     img: {
       type: Sequelize.STRING(500),
-      allowNull: true,
+      allowNull: false,
       comment: '封面url',
       get () {
         return this.getDataValue('img').indexOf('http') < 0 ? config.siteDomain + '/assets/' + this.getDataValue('img') : this.getDataValue('img');
       }
     },
-    praise: {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-      defaultValue: 0,
-      comment: '点赞数'
-    },
-    text: {
-      type: Sequelize.TEXT,
+    url: {
+      type: Sequelize.STRING(500),
       allowNull: false,
-      comment: '游记内容'
+      comment: '页面跳转url'
+    },
+    date: {
+      type: Sequelize.STRING(50),
+      allowNull: false,
+      comment: '相关日期'
     }
   },
   merge(
     {
-      tableName: 'note',
-      modelName: 'note',
+      tableName: 'banner',
+      modelName: 'banner',
       sequelize: db
     },
     InfoCrudMixin.options
   )
 );
 
-module.exports = { Note };
+module.exports = { Banner };

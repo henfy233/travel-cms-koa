@@ -18,7 +18,7 @@ const {
   loginRequire
 } = require('../../libs/jwt');
 
-const { PositiveIdValidator, PaginateValidator } = require('../../validators/common');
+const { PositiveIdValidator, PaginateValidator, SearchValidator } = require('../../validators/common');
 
 const { NoteDao } = require('../../dao/note');
 
@@ -146,6 +146,17 @@ noteApi.linGet(
     ctx.json(notes);
   }
 );
+
+noteApi.get('/search', async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const notes = await noteDto.getNoteByKeyword(v.get('query.q'));
+  if (!notes || notes.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关游记'
+    });
+  }
+  ctx.json(notes);
+});
 
 /**
  * 根据ID值获取游记

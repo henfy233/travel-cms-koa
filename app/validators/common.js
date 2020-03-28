@@ -24,7 +24,15 @@ class PaginateValidator extends LinValidator {
   }
 }
 
+class SearchValidator extends LinValidator {
+  constructor () {
+    super();
+    this.q = new Rule('isNotEmpty', '必须传入搜索关键字');
+  }
+}
+
 module.exports = {
   PaginateValidator,
-  PositiveIdValidator
+  PositiveIdValidator,
+  SearchValidator
 };

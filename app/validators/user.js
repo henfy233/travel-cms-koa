@@ -96,13 +96,6 @@ class VerifyValidator extends LinValidator {
   }
 }
 
-class UserSearchValidator extends LinValidator {
-  constructor () {
-    super();
-    this.q = new Rule('isNotEmpty', '必须传入搜索关键字');
-  }
-}
-
 class CreateOrUpdateUserValidator extends LinValidator {
   constructor () {
     super();
@@ -150,7 +143,6 @@ module.exports = {
   VerifyValidator,
   GetInformationValidator,
   CreateOrUpdateUserValidator,
-  UserSearchValidator,
   AvatarUpdateValidator,
   ChangePasswordValidator
 };

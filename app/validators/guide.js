@@ -2,13 +2,6 @@
 
 const { LinValidator, Rule } = require('lin-mizar');
 
-class GuideSearchValidator extends LinValidator {
-  constructor () {
-    super();
-    this.q = new Rule('isNotEmpty', '必须传入搜索关键字');
-  }
-}
-
 class CreateOrUpdateGuideValidator extends LinValidator {
   constructor () {
     super();
@@ -28,6 +21,5 @@ class PositiveNumValidator extends LinValidator {
 
 module.exports = {
   CreateOrUpdateGuideValidator,
-  GuideSearchValidator,
   PositiveNumValidator
 };

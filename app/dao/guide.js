@@ -3,7 +3,7 @@
 const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Guide } = require('../models/guide');
-const Sequelize = require('sequelize');
+// const Sequelize = require('sequelize');
 
 class GuideDao {
   /**
@@ -112,22 +112,6 @@ class GuideDao {
   }
 
   /**
-   * 根据匹配文本查找攻略
-   * @param {String} q 匹配文本
-   */
-  async getGuideByKeyword (q) {
-    const guide = await Guide.findOne({
-      where: {
-        title: {
-          [Sequelize.Op.like]: `%${q}%`
-        },
-        delete_time: null
-      }
-    });
-    return guide;
-  }
-
-  /**
    * 获取最火攻略
    * @param {object} v 攻略数量
    */
@@ -204,6 +188,26 @@ class GuideDao {
         replacements: {
           id: user.id,
           count: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return guides;
+  }
+
+  /**
+   * 根据匹配文本查找攻略
+   * @param {String} q 匹配文本
+   */
+  async getGuideByKeyword (q) {
+    let sql =
+    'SELECT g.id, g.title, g.eid, g.img, g.praise, g.text, g.create_time,  u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g, user u ';
+    let guides = await db.query(
+      sql +
+        ' WHERE g.eid = u.id AND g.delete_time IS NULL AND g.title LIKE :q Order By g.create_time Desc ',
+      {
+        replacements: {
+          q: '%' + q + '%'
         },
         type: db.QueryTypes.SELECT
       }

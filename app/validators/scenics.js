@@ -2,13 +2,6 @@
 
 const { LinValidator, Rule } = require('lin-mizar');
 
-class ScenicsSearchValidator extends LinValidator {
-  constructor () {
-    super();
-    this.q = new Rule('isNotEmpty', '必须传入搜索关键字');
-  }
-}
-
 class CreateOrUpdateScenicsValidator extends LinValidator {
   constructor () {
     super();
@@ -22,6 +15,5 @@ class CreateOrUpdateScenicsValidator extends LinValidator {
 }
 
 module.exports = {
-  CreateOrUpdateScenicsValidator,
-  ScenicsSearchValidator
+  CreateOrUpdateScenicsValidator
 };

@@ -18,7 +18,7 @@ const {
   loginRequire
 } = require('../../libs/jwt');
 
-const { PositiveIdValidator, PaginateValidator } = require('../../validators/common');
+const { PositiveIdValidator, PaginateValidator, SearchValidator } = require('../../validators/common');
 
 const { GuideDao } = require('../../dao/guide');
 
@@ -110,7 +110,7 @@ guideApi.linPost(
   'getHotGuides',
   '/login/hotGuides',
   {
-    auth: '发布攻略',
+    auth: '获取最火游记',
     module: '用户',
     mount: false
   },
@@ -131,7 +131,7 @@ guideApi.linGet(
   'getMyGuides',
   '/myGuides',
   {
-    auth: '获取我的游记',
+    auth: '获取我的攻略',
     module: '用户',
     mount: false
   },
@@ -140,12 +140,23 @@ guideApi.linGet(
     const guides = await guideDto.getMyGuides(ctx);
     if (!guides || guides.length < 1) {
       throw new NotFound({
-        msg: '没有找到相关攻略'
+        msg: '你还没发表攻略'
       });
     }
     ctx.json(guides);
   }
 );
+
+guideApi.get('/search', async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const guides = await guideDto.getGuideByKeyword(v.get('query.q'));
+  if (!guides || guides.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json(guides);
+});
 
 /**
  * 根据ID值获取攻略

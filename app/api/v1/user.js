@@ -22,13 +22,12 @@ const {
   LoginValidator,
   VerifyValidator,
   GetInformationValidator,
-  UserSearchValidator,
   CreateOrUpdateUserValidator,
   AvatarUpdateValidator,
   ChangePasswordValidator
 } = require('../../validators/user');
 
-const { PositiveIdValidator } = require('../../validators/common');
+const { PositiveIdValidator, SearchValidator } = require('../../validators/common');
 
 const { User } = require('../../models/user');
 const { UserDao } = require('../../dao/user');
@@ -297,6 +296,57 @@ userApi.linPost(
 );
 
 userApi.linGet(
+  'getMyFans',
+  '/myFans',
+  {
+    auth: '获取我的粉丝',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const fans = await userDto.getMyFans(ctx);
+    if (!fans || fans.length < 1) {
+      throw new NotFound({
+        msg: '你还没有粉丝'
+      });
+    }
+    ctx.json(fans);
+  }
+);
+
+userApi.linGet(
+  'getMyFollows',
+  '/myFollows',
+  {
+    auth: '获取我的关注',
+    module: '用户',
+    mount: false
+  },
+  loginRequire,
+  async ctx => {
+    const follows = await userDto.getMyFollows(ctx);
+    if (!follows || follows.length < 1) {
+      throw new NotFound({
+        msg: '你还没有关注'
+      });
+    }
+    ctx.json(follows);
+  }
+);
+
+userApi.get('/search', async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const users = await userDto.getUserByKeyword(v.get('query.q'));
+  if (!users || users.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关用户'
+    });
+  }
+  ctx.json(users);
+});
+
+userApi.linGet(
   'getUser',
   '/:id',
   {
@@ -326,17 +376,6 @@ userApi.get('/', async ctx => {
   //   });
   // }
   ctx.json(users);
-});
-
-userApi.get('/search/one', async ctx => {
-  const v = await new UserSearchValidator().validate(ctx);
-  const user = await userDto.getUserByKeyword(v.get('query.q'));
-  if (!user) {
-    throw new NotFound({
-      msg: '没有找到用户'
-    });
-  }
-  ctx.json(user);
 });
 
 userApi.post('/', async ctx => {

@@ -4,7 +4,6 @@ const { NotFound, Forbidden } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { User } = require('../models/user');
 const { Follow } = require('../models/follow')
-const Sequelize = require('sequelize');
 
 class UserDao {
   /**
@@ -30,16 +29,24 @@ class UserDao {
     return userInfo[0];
   }
 
+  /**
+   * 根据匹配文本查找用户
+   * @param {String} q 匹配文本
+   */
   async getUserByKeyword (q) {
-    const user = await User.findOne({
-      where: {
-        title: {
-          [Sequelize.Op.like]: `%${q}%`
+    let sql =
+    'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows FROM user u ';
+    let users = await db.query(
+      sql +
+        ' WHERE u.delete_time IS NULL AND u.nickname LIKE :q ORDER BY u.create_time DESC ',
+      {
+        replacements: {
+          q: '%' + q + '%'
         },
-        delete_time: null
+        type: db.QueryTypes.SELECT
       }
-    });
-    return user;
+    );
+    return users;
   }
 
   async getUsers () {
@@ -169,6 +176,48 @@ class UserDao {
         transaction: t
       });
     });
+  }
+
+  /**
+   * 获取我的粉丝
+   * @param {object} ctx 用户信息
+   */
+  async getMyFans (ctx) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows FROM user u, follow f ';
+    let fans = await db.query(
+      sql +
+        ' WHERE u.id = f.eid AND f.be_eid = :id AND u.delete_time IS NULL ',
+      {
+        replacements: {
+          id: user.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return fans;
+  }
+
+  /**
+   * 获取我的关注
+   * @param {object} ctx 用户信息
+   */
+  async getMyFollows (ctx) {
+    const user = ctx.currentUser;
+    let sql =
+      'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows, f.id as followed FROM user u, follow f ';
+    let follows = await db.query(
+      sql +
+        ' WHERE u.id = f.be_eid AND f.eid = :id AND u.delete_time IS NULL ',
+      {
+        replacements: {
+          id: user.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return follows;
   }
 
   async deleteUser (id) {

@@ -1,6 +1,7 @@
 'use strict';
 
 const { NotFound, Forbidden } = require('lin-mizar');
+const { db } = require('lin-mizar/lin/db');
 const { Scenics } = require('../models/scenics');
 const { Around } = require('../models/around');
 const Sequelize = require('sequelize');
@@ -39,15 +40,22 @@ class ScenicsDao {
     };
   }
 
+  /**
+   * 搜索旅游地
+   * @param {String} q 关键词
+   */
   async getScenicsByKeyword (q) {
-    const scenics = await Scenics.findOne({
-      where: {
-        title: {
-          [Sequelize.Op.like]: `%${q}%`
+    let sql = 'SELECT s.id, s.name, s.position, s.image, s.praise FROM scenics s WHERE s.delete_time IS NULL AND ';
+    let scenics = await db.query(
+      sql +
+        ' s.name LIKE :q ',
+      {
+        replacements: {
+          q: '%' + q + '%'
         },
-        delete_time: null
+        type: db.QueryTypes.SELECT
       }
-    });
+    );
     return scenics;
   }
 
@@ -60,6 +68,26 @@ class ScenicsDao {
         delete_time: null
       }
     });
+    return scenics;
+  }
+
+  /**
+   * 获取最火旅游地
+   * @param {int} num 几个旅游地
+   */
+  async getHotScenics (num) {
+    let sql =
+      'SELECT s.id, s.name, s.image FROM scenics s WHERE s.delete_time IS NULL ORDER BY s.praise DESC ';
+    let scenics = await db.query(
+      sql +
+        ' LIMIT :num ',
+      {
+        replacements: {
+          num: num
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
     return scenics;
   }
 
