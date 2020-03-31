@@ -3,7 +3,7 @@
 const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Guide } = require('../models/guide');
-// const Sequelize = require('sequelize');
+const { ArtAround } = require('../models/art_around.js');
 
 class GuideDao {
   /**
@@ -49,8 +49,9 @@ class GuideDao {
    */
   async postGuide (ctx, v) {
     const user = ctx.currentUser;
+    const arounds = v.get('body.arounds');
     return db.transaction(async t => {
-      await Guide.create({
+      const guide = await Guide.create({
         title: v.get('body.title'),
         eid: user.id,
         img: v.get('body.img'),
@@ -58,6 +59,15 @@ class GuideDao {
       }, {
         transaction: t
       });
+      for (var i = 0; i < arounds.length; i++) {
+        await ArtAround.create({
+          oid: guide.id,
+          type: 200,
+          aid: arounds[i]
+        }, {
+          transaction: t
+        });
+      }
       await user.increment('guides', {
         by: 1,
         transaction: t
@@ -71,10 +81,10 @@ class GuideDao {
    */
   async getGuide (id) {
     let sql =
-      'SELECT guide.*,user.`nickname`,user.`avatar` FROM guide LEFT JOIN user ON guide.eid = user.id WHERE';
-    let guide = await db.query(
+      ' SELECT g.id, u.nickname, u.avatar, g.title, g.eid, g.img, g.text, g.create_time FROM guide g LEFT JOIN user u ON g.eid = u.id WHERE ';
+    let guides = await db.query(
       sql +
-        ' guide.delete_time IS NULL AND guide.id = :id ',
+        ' g.delete_time IS NULL AND g.id = :id ',
       {
         replacements: {
           id
@@ -82,12 +92,23 @@ class GuideDao {
         type: db.QueryTypes.SELECT
       }
     );
-    guide.map(guide => {
-      unsets(guide, ['update_time', 'delete_time']);
-      // guides.create_time = dayjs(guides.create_time).unix();
-      return guide;
-    });
-    return guide[0];
+    let guide = guides[0];
+    let sql1 =
+      ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
+    let arounds = await db.query(
+      sql1 +
+        ' a.oid = :id AND a.type = 200 ',
+      {
+        replacements: {
+          id: guide.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return {
+      guide,
+      arounds
+    };
   }
 
   /**
@@ -213,6 +234,37 @@ class GuideDao {
       }
     );
     return guides;
+  }
+
+  /**
+   * 删除我的攻略
+   * @param {object} ctx 用户信息
+   * @param {int} id ID号
+   */
+  async deleteMyGuide (ctx, id) {
+    const user = ctx.currentUser;
+    const guide = await Guide.findOne({
+      where: {
+        id,
+        eid: user.id,
+        delete_time: null
+      }
+    });
+    if (!guide) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    return db.transaction(async t => {
+      await guide.destroy({
+        force: true,
+        transaction: t
+      });
+      await user.decrement('guides', {
+        by: 1,
+        transaction: t
+      });
+    });
   }
 
   /**

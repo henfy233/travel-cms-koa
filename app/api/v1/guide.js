@@ -10,7 +10,6 @@ const {
 const { getSafeParamId } = require('../../libs/util');
 
 const {
-  CreateOrUpdateGuideValidator,
   PositiveNumValidator
 } = require('../../validators/guide');
 
@@ -18,7 +17,12 @@ const {
   loginRequire
 } = require('../../libs/jwt');
 
-const { PositiveIdValidator, PaginateValidator, SearchValidator } = require('../../validators/common');
+const {
+  PositiveIdValidator,
+  PaginateValidator,
+  SearchValidator,
+  PostArticleValidator
+} = require('../../validators/common');
 
 const { GuideDao } = require('../../dao/guide');
 
@@ -40,7 +44,7 @@ guideApi.linPost(
   },
   loginRequire,
   async ctx => {
-    const v = await new CreateOrUpdateGuideValidator().validate(ctx);
+    const v = await new PostArticleValidator().validate(ctx);
     await guideDto.postGuide(ctx, v);
     ctx.success({
       msg: '发布攻略成功'
@@ -164,14 +168,36 @@ guideApi.get('/search', async ctx => {
 guideApi.get('/:id', async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');
-  const guide = await guideDto.getGuide(id);
+  const { guide, arounds } = await guideDto.getGuide(id);
   if (!guide) {
     throw new NotFound({
       msg: '没有找到相关攻略'
     });
   }
-  ctx.json(guide);
+  ctx.json({
+    guide,
+    arounds
+  });
 });
+
+guideApi.linDelete(
+  'deleteMyGuide',
+  '/myGuides/:id',
+  {
+    auth: '删除我的攻略',
+    module: '攻略',
+    mount: true
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await guideDto.deleteMyGuide(ctx, id);
+    ctx.success({
+      msg: '删除攻略成功'
+    });
+  }
+);
 
 // bookApi.get('/search/one', async ctx => {
 //   const v = await new BookSearchValidator().validate(ctx);
@@ -183,7 +209,7 @@ guideApi.get('/:id', async ctx => {
 // });
 
 guideApi.post('/', async ctx => {
-  const v = await new CreateOrUpdateGuideValidator().validate(ctx);
+  const v = await new PostArticleValidator().validate(ctx);
   await guideDto.createGuide(ctx, v);
   ctx.success({
     msg: '新建攻略成功'
@@ -192,7 +218,7 @@ guideApi.post('/', async ctx => {
 
 guideApi.put('/:id', async ctx => {
   // console.log(ctx);
-  const v = await new CreateOrUpdateGuideValidator().validate(ctx);
+  const v = await new PostArticleValidator().validate(ctx);
   const id = getSafeParamId(ctx);
   await guideDto.updateGuide(v, id);
   ctx.success({

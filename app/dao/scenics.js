@@ -60,10 +60,14 @@ class ScenicsDao {
   }
 
   /**
-   * 获取所有景点
+   * 获取所有旅行地
    */
   async getAllScenics () {
     const scenics = await Scenics.findAll({
+      attributes: [
+        'id',
+        'name'
+      ],
       where: {
         delete_time: null
       }

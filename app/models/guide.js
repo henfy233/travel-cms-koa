@@ -11,7 +11,7 @@ class Guide extends Model {
     let origin = {
       id: this.id,
       title: this.title,
-      eId: this.eId,
+      eid: this.eid,
       img: this.img,
       praise: this.praise,
       text: this.text,
@@ -33,7 +33,7 @@ Guide.init(
       allowNull: false,
       comment: '标题'
     },
-    eId: {
+    eid: {
       type: Sequelize.STRING(100),
       allowNull: false,
       comment: '用户ID'

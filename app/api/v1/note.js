@@ -10,7 +10,6 @@ const {
 const { getSafeParamId } = require('../../libs/util');
 
 const {
-  CreateOrUpdateNoteValidator,
   PositiveNumValidator
 } = require('../../validators/note');
 
@@ -18,7 +17,12 @@ const {
   loginRequire
 } = require('../../libs/jwt');
 
-const { PositiveIdValidator, PaginateValidator, SearchValidator } = require('../../validators/common');
+const {
+  PositiveIdValidator,
+  PaginateValidator,
+  SearchValidator,
+  PostArticleValidator
+} = require('../../validators/common');
 
 const { NoteDao } = require('../../dao/note');
 
@@ -40,7 +44,7 @@ noteApi.linPost(
   },
   loginRequire,
   async ctx => {
-    const v = await new CreateOrUpdateNoteValidator().validate(ctx);
+    const v = await new PostArticleValidator().validate(ctx);
     await noteDto.postNote(ctx, v);
     ctx.success({
       msg: '发布游记成功'
@@ -164,14 +168,36 @@ noteApi.get('/search', async ctx => {
 noteApi.get('/:id', async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');
-  const note = await noteDto.getNote(id);
+  const { note, arounds } = await noteDto.getNote(id);
   if (!note) {
     throw new NotFound({
       msg: '没有找到相关游记'
     });
   }
-  ctx.json(note);
+  ctx.json({
+    note,
+    arounds
+  });
 });
+
+noteApi.linDelete(
+  'deleteMyNote',
+  '/myNotes/:id',
+  {
+    auth: '删除我的游记',
+    module: '游记',
+    mount: true
+  },
+  loginRequire,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await noteDto.deleteMyNote(ctx, id);
+    ctx.success({
+      msg: '删除游记成功'
+    });
+  }
+);
 
 // bookApi.get('/search/one', async ctx => {
 //   const v = await new BookSearchValidator().validate(ctx);
@@ -183,7 +209,7 @@ noteApi.get('/:id', async ctx => {
 // });
 
 noteApi.post('/', async ctx => {
-  const v = await new CreateOrUpdateNoteValidator().validate(ctx);
+  const v = await new PostArticleValidator().validate(ctx);
   await noteDto.createNote(ctx, v);
   ctx.success({
     msg: '新建游记成功'
@@ -192,7 +218,7 @@ noteApi.post('/', async ctx => {
 
 noteApi.put('/:id', async ctx => {
   // console.log(ctx);
-  const v = await new CreateOrUpdateNoteValidator().validate(ctx);
+  const v = await new PostArticleValidator().validate(ctx);
   const id = getSafeParamId(ctx);
   await noteDto.updateNote(v, id);
   ctx.success({
