@@ -4,6 +4,7 @@ const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Note } = require('../models/note');
 const { ArtAround } = require('../models/art_around.js');
+const dayjs = require('dayjs');
 
 class NoteDao {
   /**
@@ -13,10 +14,10 @@ class NoteDao {
    */
   async getNotes (start, count1) {
     let sql =
-      'SELECT note.*,user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+      'SELECT n.*, u.nickname, u.avatar, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
+      ' LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL Order By n.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -26,7 +27,7 @@ class NoteDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM note WHERE note.delete_time IS NULL';
+      'SELECT COUNT(*) as count FROM note n WHERE n.delete_time IS NULL';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -94,7 +95,7 @@ class NoteDao {
     );
     let note = notes[0];
     let sql1 =
-      ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
+      ' SELECT s.id, s.name, s.image FROM note s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
     let arounds = await db.query(
       sql1 +
       ' a.oid = :id AND a.type = 100 ',
@@ -268,6 +269,66 @@ class NoteDao {
   }
 
   /**
+   * CMS 获取所有游记
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getCMSAllNote (ctx, start, count1) {
+    let sql =
+      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.delete_time as isDelete, n.create_time FROM note n, user u WHERE n.eid = u.id Order By n.create_time Desc';
+    let notes = await db.query(
+      sql +
+      ' LIMIT :count OFFSET :start ',
+      {
+        replacements: {
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    notes.map(note => {
+      note.create_time = dayjs(note.create_time).format('YYYY-MM-DD dddd HH:mm:ss A');
+      return note;
+    });
+    let sql1 =
+      'SELECT COUNT(*) as count FROM note n';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
+    });
+    total = total[0]['count'];
+    return {
+      notes,
+      total
+    };
+  }
+
+  /**
+   * 根据匹配文本查找游记
+   * @param {String} q 匹配文本
+   */
+  async getCMSNoteByKeyword (q) {
+    let sql =
+      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.delete_time as isDelete, n.create_time FROM note n, user u ';
+    let notes = await db.query(
+      sql +
+      ' WHERE n.eid = u.id AND n.title LIKE :q ',
+      {
+        replacements: {
+          q: '%' + q + '%'
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    notes.map(note => {
+      note.create_time = dayjs(note.create_time).format('YYYY-MM-DD dddd HH:mm:ss A');
+      return note;
+    });
+    return notes;
+  }
+
+  /**
    * 创建游记
    * @param {Object} v 信息
    */
@@ -298,14 +359,25 @@ class NoteDao {
   }
 
   /**
-   * 删除游记
+   * 开放游记
    * @param {int} id ID号
    */
-  async deleteNote (id) {
+  async permitNote (id) {
+    await Note.restore({
+      where: {
+        id
+      }
+    });
+  }
+
+  /**
+   * 封禁游记
+   * @param {int} id ID号
+   */
+  async prohibitNote (id) {
     const note = await Note.findOne({
       where: {
-        id,
-        delete_time: null
+        id
       }
     });
     if (!note) {
@@ -314,6 +386,18 @@ class NoteDao {
       });
     }
     note.destroy();
+  }
+
+  /**
+   * 彻底删除游记
+   * @param {int} id ID号
+   */
+  async deleteNote (id) {
+    await Note.destroy({
+      where: {
+        id
+      }
+    }, { force: true });
   }
 }
 

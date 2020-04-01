@@ -41,7 +41,7 @@ class ScenicsDao {
   }
 
   /**
-   * 搜索旅游地
+   * 搜索景点
    * @param {String} q 关键词
    */
   async getScenicsByKeyword (q) {
@@ -76,8 +76,8 @@ class ScenicsDao {
   }
 
   /**
-   * 获取最火旅游地
-   * @param {int} num 几个旅游地
+   * 获取最火景点
+   * @param {int} num 几个景点
    */
   async getHotScenics (num) {
     let sql =
@@ -95,6 +95,42 @@ class ScenicsDao {
     return scenics;
   }
 
+  /**
+   * CMS 获取所有旅行地
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getCMSAllScenics (ctx, start, count1) {
+    let sql =
+      ' SELECT s.id, s.name, s.position FROM scenics s WHERE s.delete_time IS NULL ';
+    let scenics = await db.query(
+      sql +
+      ' LIMIT :count OFFSET :start',
+      {
+        replacements: {
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql1 =
+      'SELECT COUNT(*) as count FROM scenics s WHERE s.delete_time IS NULL';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
+    });
+    total = total[0]['count'];
+    return {
+      scenics,
+      total
+    };
+  }
+
+  /**
+   * CMS 创建景点
+   * @param {Object} v 返回信息
+   */
   async createScenics (v) {
     const scenics = await Scenics.findOne({
       where: {
@@ -104,7 +140,7 @@ class ScenicsDao {
     });
     if (scenics) {
       throw new Forbidden({
-        msg: '旅游地已存在'
+        msg: '景点已存在'
       });
     }
     const bk = new Scenics();
@@ -114,11 +150,16 @@ class ScenicsDao {
     bk.save();
   }
 
+  /**
+   * CMS 根据景点ID修改景点信息
+   * @param {int} id 景点ID
+   * @param {Object} v 景点信息
+   */
   async updateScenics (v, id) {
     const scenics = await Scenics.findByPk(id);
     if (!scenics) {
       throw new NotFound({
-        msg: '没有找到相关旅游地'
+        msg: '没有找到相关景点'
       });
     }
     scenics.name = v.get('body.name');
@@ -127,6 +168,10 @@ class ScenicsDao {
     scenics.save();
   }
 
+  /**
+   * CMS 根据景点ID删除景点
+   * @param {int} id 景点ID
+   */
   async deleteScenics (id) {
     const scenics = await Scenics.findOne({
       where: {
@@ -136,7 +181,7 @@ class ScenicsDao {
     });
     if (!scenics) {
       throw new NotFound({
-        msg: '没有找到相关旅游地'
+        msg: '没有找到相关景点'
       });
     }
     scenics.destroy();

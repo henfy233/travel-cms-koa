@@ -3,6 +3,7 @@
 const {
   LinRouter,
   NotFound,
+  loginRequired,
   groupRequired,
   disableLoading
 } = require('lin-mizar');
@@ -162,24 +163,6 @@ guideApi.get('/search', async ctx => {
   ctx.json(guides);
 });
 
-/**
- * 根据ID值获取攻略
- */
-guideApi.get('/:id', async ctx => {
-  const v = await new PositiveIdValidator().validate(ctx);
-  const id = v.get('path.id');
-  const { guide, arounds } = await guideDto.getGuide(id);
-  if (!guide) {
-    throw new NotFound({
-      msg: '没有找到相关攻略'
-    });
-  }
-  ctx.json({
-    guide,
-    arounds
-  });
-});
-
 guideApi.linDelete(
   'deleteMyGuide',
   '/myGuides/:id',
@@ -199,14 +182,39 @@ guideApi.linDelete(
   }
 );
 
-// bookApi.get('/search/one', async ctx => {
-//   const v = await new BookSearchValidator().validate(ctx);
-//   const book = await bookDto.getBookByKeyword(v.get('query.q'));
-//   if (!book) {
-//     throw new BookNotFound();
-//   }
-//   ctx.json(book);
-// });
+// -----------------------CMS------------------------------------
+
+guideApi.get('/cms/', loginRequired, async ctx => {
+  const v = await new PaginateValidator().validate(ctx);
+  const { guides, total } = await guideDto.getCMSAllGuide(
+    ctx,
+    v.get('query.page'),
+    v.get('query.count')
+  );
+  if (!guides || guides.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json({
+    items: guides,
+    total: total,
+    page: v.get('query.page'),
+    count: v.get('query.count'),
+    total_page: Math.ceil(total / parseInt(v.get('query.count')))
+  });
+});
+
+guideApi.get('/cms/search', loginRequired, async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const guides = await guideDto.getCMSGuideByKeyword(v.get('query.q'));
+  if (!guides || guides.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json(guides);
+});
 
 guideApi.post('/', async ctx => {
   const v = await new PostArticleValidator().validate(ctx);
@@ -227,6 +235,44 @@ guideApi.put('/:id', async ctx => {
 });
 
 guideApi.linDelete(
+  'permitGuide',
+  '/per/:id',
+  {
+    auth: '开放攻略',
+    module: '攻略',
+    mount: true
+  },
+  groupRequired,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await guideDto.permitGuide(id);
+    ctx.success({
+      msg: '开放攻略成功'
+    });
+  }
+);
+
+guideApi.linDelete(
+  'prohibitGuide',
+  '/pro/:id',
+  {
+    auth: '封禁攻略',
+    module: '攻略',
+    mount: true
+  },
+  groupRequired,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await guideDto.prohibitGuide(id);
+    ctx.success({
+      msg: '封禁攻略成功'
+    });
+  }
+);
+
+guideApi.linDelete(
   'deleteGuide',
   '/:id',
   {
@@ -244,5 +290,23 @@ guideApi.linDelete(
     });
   }
 );
+
+/**
+ * 根据ID值获取攻略
+ */
+guideApi.get('/:id', async ctx => {
+  const v = await new PositiveIdValidator().validate(ctx);
+  const id = v.get('path.id');
+  const { guide, arounds } = await guideDto.getGuide(id);
+  if (!guide) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json({
+    guide,
+    arounds
+  });
+});
 
 module.exports = { guideApi, [disableLoading]: false };

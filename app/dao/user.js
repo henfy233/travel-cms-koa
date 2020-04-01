@@ -11,7 +11,7 @@ class UserDao {
    * @param {object} ctx 用户信息
    * @param {int} id 用户ID
    */
-  async getUser (ctx, id) {
+  async getUserWithFollow (ctx, id) {
     const user = ctx.currentUser;
     let sql =
       'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows, f.id as followed FROM user u ';
@@ -46,15 +46,6 @@ class UserDao {
         type: db.QueryTypes.SELECT
       }
     );
-    return users;
-  }
-
-  async getUsers () {
-    const users = await User.findAll({
-      where: {
-        delete_time: null
-      }
-    });
     return users;
   }
 
@@ -218,6 +209,52 @@ class UserDao {
       }
     );
     return follows;
+  }
+
+  /**
+   * 获取所有用户
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getUsers (ctx, start, count1) {
+    let sql =
+      ' SELECT u.id, u.nickname, u.email FROM user u WHERE u.delete_time IS NULL ';
+    let users = await db.query(
+      sql +
+      ' LIMIT :count OFFSET :start',
+      {
+        replacements: {
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql1 =
+      'SELECT COUNT(*) as count FROM user u WHERE u.delete_time IS NULL';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
+    });
+    total = total[0]['count'];
+    return {
+      users,
+      total
+    };
+  }
+
+  /**
+   * 根据用户ID获取用户信息
+   * @param {int} id 用户ID
+   */
+  async getUser (id) {
+    const user = await User.findOne({
+      where: {
+        id,
+        delete_time: null
+      }
+    });
+    return user;
   }
 
   async deleteUser (id) {

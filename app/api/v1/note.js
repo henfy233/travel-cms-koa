@@ -3,6 +3,7 @@
 const {
   LinRouter,
   NotFound,
+  loginRequired,
   groupRequired,
   disableLoading
 } = require('lin-mizar');
@@ -162,24 +163,6 @@ noteApi.get('/search', async ctx => {
   ctx.json(notes);
 });
 
-/**
- * 根据ID值获取游记
- */
-noteApi.get('/:id', async ctx => {
-  const v = await new PositiveIdValidator().validate(ctx);
-  const id = v.get('path.id');
-  const { note, arounds } = await noteDto.getNote(id);
-  if (!note) {
-    throw new NotFound({
-      msg: '没有找到相关游记'
-    });
-  }
-  ctx.json({
-    note,
-    arounds
-  });
-});
-
 noteApi.linDelete(
   'deleteMyNote',
   '/myNotes/:id',
@@ -199,14 +182,39 @@ noteApi.linDelete(
   }
 );
 
-// bookApi.get('/search/one', async ctx => {
-//   const v = await new BookSearchValidator().validate(ctx);
-//   const book = await bookDto.getBookByKeyword(v.get('query.q'));
-//   if (!book) {
-//     throw new BookNotFound();
-//   }
-//   ctx.json(book);
-// });
+// -----------------------CMS------------------------------------
+
+noteApi.get('/cms/', loginRequired, async ctx => {
+  const v = await new PaginateValidator().validate(ctx);
+  const { notes, total } = await noteDto.getCMSAllNote(
+    ctx,
+    v.get('query.page'),
+    v.get('query.count')
+  );
+  if (!notes || notes.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关游记'
+    });
+  }
+  ctx.json({
+    items: notes,
+    total: total,
+    page: v.get('query.page'),
+    count: v.get('query.count'),
+    total_page: Math.ceil(total / parseInt(v.get('query.count')))
+  });
+});
+
+noteApi.get('/cms/search', loginRequired, async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const notes = await noteDto.getCMSNoteByKeyword(v.get('query.q'));
+  if (!notes || notes.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关游记'
+    });
+  }
+  ctx.json(notes);
+});
 
 noteApi.post('/', async ctx => {
   const v = await new PostArticleValidator().validate(ctx);
@@ -227,6 +235,44 @@ noteApi.put('/:id', async ctx => {
 });
 
 noteApi.linDelete(
+  'permitNote',
+  '/per/:id',
+  {
+    auth: '开放游记',
+    module: '游记',
+    mount: true
+  },
+  groupRequired,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await noteDto.permitNote(id);
+    ctx.success({
+      msg: '开放游记成功'
+    });
+  }
+);
+
+noteApi.linDelete(
+  'prohibitNote',
+  '/pro/:id',
+  {
+    auth: '封禁游记',
+    module: '游记',
+    mount: true
+  },
+  groupRequired,
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await noteDto.prohibitNote(id);
+    ctx.success({
+      msg: '封禁游记成功'
+    });
+  }
+);
+
+noteApi.linDelete(
   'deleteNote',
   '/:id',
   {
@@ -244,5 +290,23 @@ noteApi.linDelete(
     });
   }
 );
+
+/**
+ * 根据ID值获取游记
+ */
+noteApi.get('/:id', async ctx => {
+  const v = await new PositiveIdValidator().validate(ctx);
+  const id = v.get('path.id');
+  const { note, arounds } = await noteDto.getNote(id);
+  if (!note) {
+    throw new NotFound({
+      msg: '没有找到相关游记'
+    });
+  }
+  ctx.json({
+    note,
+    arounds
+  });
+});
 
 module.exports = { noteApi, [disableLoading]: false };

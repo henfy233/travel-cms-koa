@@ -77,6 +77,7 @@ user.linPut(
     mount: false
   },
   loginRequired,
+  logger('管理员更新了一个CMS用户'),
   async ctx => {
     const v = await new UpdateInfoValidator().validate(ctx);
     await userDao.updateUser(ctx, v);
@@ -95,6 +96,7 @@ user.linPut(
     mount: false
   },
   loginRequired,
+  logger('管理员修改了一个CMS用户密码'),
   async ctx => {
     const v = await new ChangePasswordValidator().validate(ctx);
     let user = ctx.currentUser;

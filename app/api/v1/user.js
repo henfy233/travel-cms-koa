@@ -7,7 +7,7 @@ const {
   Failed,
   NotFound,
   LimitException,
-  // loginRequired,
+  loginRequired,
   groupRequired,
   disableLoading
 } = require('lin-mizar');
@@ -27,7 +27,7 @@ const {
   ChangePasswordValidator
 } = require('../../validators/user');
 
-const { PositiveIdValidator, SearchValidator } = require('../../validators/common');
+const { PositiveIdValidator, SearchValidator, PaginateValidator } = require('../../validators/common');
 
 const { User } = require('../../models/user');
 const { UserDao } = require('../../dao/user');
@@ -358,7 +358,7 @@ userApi.linGet(
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
-    const user = await userDto.getUser(ctx, id);
+    const user = await userDto.getUserWithFollow(ctx, id);
     if (!user) {
       throw new NotFound({
         msg: '没有找到相关用户'
@@ -368,14 +368,32 @@ userApi.linGet(
   }
 );
 
-userApi.get('/', async ctx => {
-  const users = await userDto.getUsers();
-  // if (!users || users.length < 1) {
-  //   throw new NotFound({
-  //     msg: '没有找到相关用户'
-  //   });
-  // }
-  ctx.json(users);
+userApi.get('/cms/:id', async ctx => {
+  const v = await new PositiveIdValidator().validate(ctx);
+  const id = v.get('path.id');
+  const user = await userDto.getUser(id);
+  if (!user) {
+    throw new NotFound({
+      msg: '没有找到相关用户'
+    });
+  }
+  ctx.json(user);
+});
+
+userApi.get('/', loginRequired, async ctx => {
+  const v = await new PaginateValidator().validate(ctx);
+  const { users, total } = await userDto.getUsers(
+    ctx,
+    v.get('query.page'),
+    v.get('query.count')
+  );
+  ctx.json({
+    items: users,
+    total: total,
+    page: v.get('query.page'),
+    count: v.get('query.count'),
+    total_page: Math.ceil(total / parseInt(v.get('query.count')))
+  });
 });
 
 userApi.post('/', async ctx => {

@@ -4,6 +4,7 @@ const { NotFound, unsets } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Guide } = require('../models/guide');
 const { ArtAround } = require('../models/art_around.js');
+const dayjs = require('dayjs');
 
 class GuideDao {
   /**
@@ -268,6 +269,66 @@ class GuideDao {
   }
 
   /**
+   * CMS 获取所有攻略
+   * @param {Object} ctx 用户信息
+   * @param {int} start 从第几条开始
+   * @param {int} count1 每页多少条记录
+   */
+  async getCMSAllGuide (ctx, start, count1) {
+    let sql =
+      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.delete_time as isDelete, g.create_time FROM guide g, user u WHERE g.eid = u.id Order By g.create_time Desc';
+    let guides = await db.query(
+      sql +
+      ' LIMIT :count OFFSET :start ',
+      {
+        replacements: {
+          count: count1,
+          start: start * count1
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    guides.map(guide => {
+      guide.create_time = dayjs(guide.create_time).format('YYYY-MM-DD dddd HH:mm:ss A');
+      return guide;
+    });
+    let sql1 =
+      'SELECT COUNT(*) as count FROM guide g';
+    let total = await db.query(sql1, {
+      type: db.QueryTypes.SELECT
+    });
+    total = total[0]['count'];
+    return {
+      guides,
+      total
+    };
+  }
+
+  /**
+   * 根据匹配文本查找攻略
+   * @param {String} q 匹配文本
+   */
+  async getCMSGuideByKeyword (q) {
+    let sql =
+      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.delete_time as isDelete, g.create_time FROM guide g, user u ';
+    let guides = await db.query(
+      sql +
+      ' WHERE g.eid = u.id AND g.title LIKE :q ',
+      {
+        replacements: {
+          q: '%' + q + '%'
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    guides.map(guide => {
+      guide.create_time = dayjs(guide.create_time).format('YYYY-MM-DD dddd HH:mm:ss A');
+      return guide;
+    });
+    return guides;
+  }
+
+  /**
    * 创建攻略
    * @param {Object} v 信息
    */
@@ -298,14 +359,25 @@ class GuideDao {
   }
 
   /**
-   * 删除攻略
+   * 开放攻略
    * @param {int} id ID号
    */
-  async deleteGuide (id) {
+  async permitGuide (id) {
+    await Guide.restore({
+      where: {
+        id
+      }
+    });
+  }
+
+  /**
+   * 封禁攻略
+   * @param {int} id ID号
+   */
+  async prohibitGuide (id) {
     const guide = await Guide.findOne({
       where: {
-        id,
-        delete_time: null
+        id
       }
     });
     if (!guide) {
@@ -314,6 +386,18 @@ class GuideDao {
       });
     }
     guide.destroy();
+  }
+
+  /**
+   * 彻底删除攻略
+   * @param {int} id ID号
+   */
+  async deleteGuide (id) {
+    await Guide.destroy({
+      where: {
+        id
+      }
+    }, { force: true });
   }
 }
 
