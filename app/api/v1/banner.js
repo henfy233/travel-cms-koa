@@ -3,7 +3,6 @@
 const {
   LinRouter,
   NotFound,
-  // groupRequired,
   disableLoading
 } = require('lin-mizar');
 // const { getSafeParamId } = require('../../libs/util');
@@ -12,7 +11,7 @@ const {
 //   CreateOrUpdateBannerValidator
 // } = require('../../validators/banner');
 
-// const { PositiveIdValidator } = require('../../validators/common');
+// const { PaginateValidator } = require('../../validators/common');
 
 const { BannerDao } = require('../../dao/banner');
 
@@ -55,14 +54,6 @@ bannerApi.get('/', async ctx => {
 //     });
 //   }
 //   ctx.json(banner);
-// });
-
-// bannerApi.post('/', async ctx => {
-//   const v = await new CreateOrUpdateBannerValidator().validate(ctx);
-//   await bannerDto.createBanner(v);
-//   ctx.success({
-//     msg: '新建Banner成功'
-//   });
 // });
 
 // bannerApi.put('/:id', async ctx => {

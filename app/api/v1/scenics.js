@@ -3,17 +3,10 @@
 const {
   LinRouter,
   NotFound,
-  groupRequired,
-  loginRequired,
-  disableLoading,
-  logger
+  disableLoading
 } = require('lin-mizar');
-const { getSafeParamId } = require('../../libs/util');
-const {
-  CreateOrUpdateScenicsValidator
-} = require('../../validators/scenics');
 
-const { PositiveIdValidator, SearchValidator, PaginateValidator } = require('../../validators/common');
+const { PositiveIdValidator, SearchValidator } = require('../../validators/common');
 
 const { ScenicsDao } = require('../../dao/scenics');
 
@@ -56,88 +49,6 @@ scenicsApi.get('/hotScenics', async ctx => {
   }
   ctx.json(scenics);
 });
-
-// -----------------------CMS------------------------------------
-
-scenicsApi.get('/cms/', loginRequired, async ctx => {
-  const v = await new PaginateValidator().validate(ctx);
-  const { scenics, total } = await scenicsDto.getCMSAllScenics(
-    ctx,
-    v.get('query.page'),
-    v.get('query.count')
-  );
-  if (!scenics || scenics.length < 1) {
-    throw new NotFound({
-      msg: '没有找到相关景点'
-    });
-  }
-  ctx.json({
-    items: scenics,
-    total: total,
-    page: v.get('query.page'),
-    count: v.get('query.count'),
-    total_page: Math.ceil(total / parseInt(v.get('query.count')))
-  });
-});
-
-scenicsApi.linPost(
-  'scenicsAdd',
-  '/',
-  {
-    auth: '添加景点',
-    module: '景点',
-    mount: false
-  },
-  loginRequired,
-  logger('管理员新建了景点'),
-  async ctx => {
-    const v = await new CreateOrUpdateScenicsValidator().validate(ctx);
-    await scenicsDto.createScenics(v);
-    ctx.success({
-      msg: '新建景点成功'
-    });
-  }
-);
-
-scenicsApi.linPut(
-  'scenicsUpdate',
-  '/:id',
-  {
-    auth: '更新景点',
-    module: '景点',
-    mount: false
-  },
-  loginRequired,
-  logger('管理员更新了景点'),
-  async ctx => {
-    const v = await new CreateOrUpdateScenicsValidator().validate(ctx);
-    const id = getSafeParamId(ctx);
-    await scenicsDto.updateScenics(v, id);
-    ctx.success({
-      msg: '更新景点成功'
-    });
-  }
-);
-
-scenicsApi.linDelete(
-  'deleteScenics',
-  '/:id',
-  {
-    auth: '删除景点',
-    module: '景点',
-    mount: true
-  },
-  groupRequired,
-  logger('管理员删除了景点'),
-  async ctx => {
-    const v = await new PositiveIdValidator().validate(ctx);
-    const id = v.get('path.id');
-    await scenicsDto.deleteScenics(id);
-    ctx.success({
-      msg: '删除景点成功'
-    });
-  }
-);
 
 /**
  * 根据ID获取景点

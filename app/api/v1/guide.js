@@ -3,12 +3,8 @@
 const {
   LinRouter,
   NotFound,
-  loginRequired,
-  groupRequired,
   disableLoading
 } = require('lin-mizar');
-
-const { getSafeParamId } = require('../../libs/util');
 
 const {
   PositiveNumValidator
@@ -169,122 +165,13 @@ guideApi.linDelete(
   {
     auth: '删除我的攻略',
     module: '攻略',
-    mount: true
+    mount: false
   },
   loginRequire,
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
     await guideDto.deleteMyGuide(ctx, id);
-    ctx.success({
-      msg: '删除攻略成功'
-    });
-  }
-);
-
-// -----------------------CMS------------------------------------
-
-guideApi.get('/cms/', loginRequired, async ctx => {
-  const v = await new PaginateValidator().validate(ctx);
-  const { guides, total } = await guideDto.getCMSAllGuide(
-    ctx,
-    v.get('query.page'),
-    v.get('query.count')
-  );
-  if (!guides || guides.length < 1) {
-    throw new NotFound({
-      msg: '没有找到相关攻略'
-    });
-  }
-  ctx.json({
-    items: guides,
-    total: total,
-    page: v.get('query.page'),
-    count: v.get('query.count'),
-    total_page: Math.ceil(total / parseInt(v.get('query.count')))
-  });
-});
-
-guideApi.get('/cms/search', loginRequired, async ctx => {
-  const v = await new SearchValidator().validate(ctx);
-  const guides = await guideDto.getCMSGuideByKeyword(v.get('query.q'));
-  if (!guides || guides.length < 1) {
-    throw new NotFound({
-      msg: '没有找到相关攻略'
-    });
-  }
-  ctx.json(guides);
-});
-
-guideApi.post('/', async ctx => {
-  const v = await new PostArticleValidator().validate(ctx);
-  await guideDto.createGuide(ctx, v);
-  ctx.success({
-    msg: '新建攻略成功'
-  });
-});
-
-guideApi.put('/:id', async ctx => {
-  // console.log(ctx);
-  const v = await new PostArticleValidator().validate(ctx);
-  const id = getSafeParamId(ctx);
-  await guideDto.updateGuide(v, id);
-  ctx.success({
-    msg: '更新攻略成功'
-  });
-});
-
-guideApi.linDelete(
-  'permitGuide',
-  '/per/:id',
-  {
-    auth: '开放攻略',
-    module: '攻略',
-    mount: true
-  },
-  groupRequired,
-  async ctx => {
-    const v = await new PositiveIdValidator().validate(ctx);
-    const id = v.get('path.id');
-    await guideDto.permitGuide(id);
-    ctx.success({
-      msg: '开放攻略成功'
-    });
-  }
-);
-
-guideApi.linDelete(
-  'prohibitGuide',
-  '/pro/:id',
-  {
-    auth: '封禁攻略',
-    module: '攻略',
-    mount: true
-  },
-  groupRequired,
-  async ctx => {
-    const v = await new PositiveIdValidator().validate(ctx);
-    const id = v.get('path.id');
-    await guideDto.prohibitGuide(id);
-    ctx.success({
-      msg: '封禁攻略成功'
-    });
-  }
-);
-
-guideApi.linDelete(
-  'deleteGuide',
-  '/:id',
-  {
-    auth: '删除攻略',
-    module: '攻略',
-    mount: true
-  },
-  groupRequired,
-  async ctx => {
-    const v = await new PositiveIdValidator().validate(ctx);
-    const id = v.get('path.id');
-    await guideDto.deleteGuide(id);
     ctx.success({
       msg: '删除攻略成功'
     });

@@ -8,8 +8,8 @@ const Sequelize = require('sequelize');
 
 class ScenicsDao {
   /**
-   * 根据ID获取旅行地
-   * @param {int} id 旅行地ID
+   * 根据ID获取景点
+   * @param {int} id 景点ID
    */
   async getScenics (id) {
     const scenics = await Scenics.findOne({
@@ -60,7 +60,7 @@ class ScenicsDao {
   }
 
   /**
-   * 获取所有旅行地
+   * 获取所有景点
    */
   async getAllScenics () {
     const scenics = await Scenics.findAll({
@@ -96,14 +96,14 @@ class ScenicsDao {
   }
 
   /**
-   * CMS 获取所有旅行地
+   * CMS 获取所有景点
    * @param {Object} ctx 用户信息
    * @param {int} start 从第几条开始
    * @param {int} count1 每页多少条记录
    */
   async getCMSAllScenics (ctx, start, count1) {
     let sql =
-      ' SELECT s.id, s.name, s.position FROM scenics s WHERE s.delete_time IS NULL ';
+      ' SELECT s.id, s.name, s.position, s.image FROM scenics s WHERE s.delete_time IS NULL ';
     let scenics = await db.query(
       sql +
       ' LIMIT :count OFFSET :start',
