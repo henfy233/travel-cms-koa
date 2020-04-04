@@ -37,13 +37,13 @@ scenics.linGet(
   loginRequired,
   async ctx => {
     const v = await new PaginateValidator().validate(ctx);
-    const { scenicss, total } = await scenicsDto.getCMSAllScenics(
+    const { scenics, total } = await scenicsDto.getCMSAllScenics(
       ctx,
       v.get('query.page'),
       v.get('query.count')
     );
     ctx.json({
-      items: scenicss,
+      items: scenics,
       total: total,
       page: v.get('query.page'),
       count: v.get('query.count'),
@@ -64,7 +64,7 @@ scenics.linGet(
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
-    const scenics = await scenicsDto.getScenics(id);
+    const scenics = await scenicsDto.getCMSScenics(id);
     if (!scenics) {
       throw new NotFound({
         msg: '没有找到相关景点'

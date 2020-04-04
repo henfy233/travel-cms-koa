@@ -219,7 +219,7 @@ class UserDao {
    */
   async getUsers (ctx, start, count1) {
     let sql =
-      ' SELECT u.id, u.nickname, u.email FROM user u WHERE u.delete_time IS NULL ';
+      ' SELECT u.id, u.nickname, u.email, u.sex, u.city FROM user u WHERE u.delete_time IS NULL ';
     let users = await db.query(
       sql +
       ' LIMIT :count OFFSET :start',

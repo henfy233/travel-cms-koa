@@ -148,6 +148,16 @@ guideApi.linGet(
   }
 );
 
+guideApi.get('/recommend', async ctx => {
+  const guides = await guideDto.getRecommendGuides();
+  if (!guides || guides.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json(guides);
+});
+
 guideApi.get('/search', async ctx => {
   const v = await new SearchValidator().validate(ctx);
   const guides = await guideDto.getGuideByKeyword(v.get('query.q'));

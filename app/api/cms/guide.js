@@ -50,6 +50,27 @@ guide.linGet(
 );
 
 guide.linGet(
+  'getGuideByKeyword',
+  '/search',
+  {
+    auth: '根据关键词获取攻略',
+    module: '攻略',
+    mount: false
+  },
+  loginRequired,
+  async ctx => {
+    const v = await new SearchValidator().validate(ctx);
+    const guides = await guideDto.getCMSGuideByKeyword(v.get('query.q'));
+    if (!guides || guides.length < 1) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    ctx.json(guides);
+  }
+);
+
+guide.linGet(
   'getGuideById',
   '/:id',
   {
@@ -75,27 +96,46 @@ guide.linGet(
 );
 
 guide.linGet(
-  'getGuideByKeyword',
-  '/search',
+  'recommendGuide',
+  '/rec/:id',
   {
-    auth: '根据关键词获取攻略',
+    auth: '推荐攻略',
     module: '攻略',
-    mount: false
+    mount: true
   },
-  loginRequired,
+  groupRequired,
+  logger('管理员推荐了攻略'),
   async ctx => {
-    const v = await new SearchValidator().validate(ctx);
-    const guides = await guideDto.getCMSGuideByKeyword(v.get('query.q'));
-    if (!guides || guides.length < 1) {
-      throw new NotFound({
-        msg: '没有找到相关攻略'
-      });
-    }
-    ctx.json(guides);
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await guideDto.recommendGuide(id);
+    ctx.success({
+      msg: '推荐攻略成功'
+    });
   }
 );
 
-guide.linDelete(
+guide.linGet(
+  'disrecommendGuide',
+  '/dis/:id',
+  {
+    auth: '取消推荐攻略',
+    module: '攻略',
+    mount: true
+  },
+  groupRequired,
+  logger('管理员取消推荐了攻略'),
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await guideDto.disrecommendGuide(id);
+    ctx.success({
+      msg: '取消推荐攻略成功'
+    });
+  }
+);
+
+guide.linGet(
   'permitGuide',
   '/per/:id',
   {
@@ -115,7 +155,7 @@ guide.linDelete(
   }
 );
 
-guide.linDelete(
+guide.linGet(
   'prohibitGuide',
   '/pro/:id',
   {

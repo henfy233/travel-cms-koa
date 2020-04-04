@@ -11,10 +11,11 @@ class Note extends Model {
     let origin = {
       id: this.id,
       title: this.title,
-      eId: this.eId,
+      eid: this.eid,
       img: this.img,
       praise: this.praise,
       text: this.text,
+      stage: this.stage,
       create_time: this.createTime
     };
     return origin;
@@ -48,7 +49,7 @@ Note.init(
     },
     praise: {
       type: Sequelize.INTEGER,
-      allowNull: true,
+      allowNull: false,
       defaultValue: 0,
       comment: '点赞数'
     },
@@ -56,6 +57,12 @@ Note.init(
       type: Sequelize.TEXT,
       allowNull: false,
       comment: '游记内容'
+    },
+    stage: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      comment: '状态'
     }
   },
   merge(

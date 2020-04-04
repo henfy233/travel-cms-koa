@@ -13,7 +13,7 @@ class CommentDao {
    */
   async getComment (id, type) {
     let sql =
-      'SELECT ci.id , ci.from_id as eid, ci.from_name as name, ci.from_avatar as headImg, ci.content as comment, ci.create_time as time, ci.like_num FROM `comments_info` as ci WHERE';
+      'SELECT ci.id , ci.from_id as eid, ci.from_name as name, ci.from_avatar as headImg, ci.content as comment, ci.create_time as time FROM `comments_info` as ci WHERE';
     let comments = await db.query(
       sql +
       ' ci.owner_id = :id AND ci.type = :type ',

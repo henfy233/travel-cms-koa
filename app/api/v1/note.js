@@ -159,6 +159,16 @@ noteApi.get('/search', async ctx => {
   ctx.json(notes);
 });
 
+noteApi.get('/recommend', async ctx => {
+  const notes = await noteDto.getRecommendNotes();
+  if (!notes || notes.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关游记'
+    });
+  }
+  ctx.json(notes);
+});
+
 noteApi.linDelete(
   'deleteMyNote',
   '/myNotes/:id',

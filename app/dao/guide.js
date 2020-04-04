@@ -17,7 +17,7 @@ class GuideDao {
       'SELECT guide.*,user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL Order By guide.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -27,7 +27,7 @@ class GuideDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL';
+      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL AND g.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -85,7 +85,7 @@ class GuideDao {
       ' SELECT g.id, u.nickname, u.avatar, g.title, g.eid, g.img, g.text, g.create_time FROM guide g LEFT JOIN user u ON g.eid = u.id WHERE ';
     let guides = await db.query(
       sql +
-        ' g.delete_time IS NULL AND g.id = :id ',
+        ' g.delete_time IS NULL AND g.stage > 0 AND g.id = :id ',
       {
         replacements: {
           id
@@ -94,6 +94,11 @@ class GuideDao {
       }
     );
     let guide = guides[0];
+    if (!guide) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
     let sql1 =
       ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
     let arounds = await db.query(
@@ -122,7 +127,7 @@ class GuideDao {
       'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide, user ';
     let guides = await db.query(
       sql +
-        ' WHERE guide.eid = `user`.id AND `user`.id = :id AND guide.delete_time IS NULL Order By guide.create_time Desc ',
+        ' WHERE guide.eid = `user`.id AND `user`.id = :id AND guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc ',
       {
         replacements: {
           id: user.id
@@ -143,7 +148,7 @@ class GuideDao {
       'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN user ON guide.eid = user.id WHERE  guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
+        ' LEFT JOIN user ON guide.eid = user.id WHERE  guide.delete_time IS NULL AND guide.stage > 0 Order By guide.praise Desc LIMIT :count ',
       {
         replacements: {
           count: num
@@ -166,7 +171,7 @@ class GuideDao {
       'SELECT guide.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL Order By guide.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           id: user.id,
@@ -177,7 +182,7 @@ class GuideDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL';
+      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL AND guide.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -205,7 +210,7 @@ class GuideDao {
       'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE  guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
+        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.stage > 0 AND guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
       {
         replacements: {
           id: user.id,
@@ -226,11 +231,25 @@ class GuideDao {
     'SELECT g.id, g.title, g.eid, g.img, g.praise, g.text, g.create_time,  u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g, user u ';
     let guides = await db.query(
       sql +
-        ' WHERE g.eid = u.id AND g.delete_time IS NULL AND g.title LIKE :q Order By g.create_time Desc ',
+        ' WHERE g.eid = u.id AND g.stage > 0 AND g.delete_time IS NULL AND g.title LIKE :q Order By g.create_time Desc ',
       {
         replacements: {
           q: '%' + q + '%'
         },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return guides;
+  }
+
+  /**
+   * 获取推荐游记
+   */
+  async getRecommendGuides () {
+    const sql = 'SELECT g.id, g.title, g.img FROM guide g WHERE g.delete_time IS NULL AND g.stage = 2 ';
+    let guides = await db.query(
+      sql,
+      {
         type: db.QueryTypes.SELECT
       }
     );
@@ -258,7 +277,6 @@ class GuideDao {
     }
     return db.transaction(async t => {
       await guide.destroy({
-        force: true,
         transaction: t
       });
       await user.decrement('guides', {
@@ -276,7 +294,7 @@ class GuideDao {
    */
   async getCMSAllGuide (ctx, start, count1) {
     let sql =
-      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.delete_time as isDelete, g.create_time FROM guide g, user u WHERE g.eid = u.id Order By g.create_time Desc';
+      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.text, g.stage, a.arounds, g.create_time FROM guide g LEFT JOIN user u ON g.eid = u.id LEFT JOIN (SELECT a.oid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, art_around a WHERE s.id = a.aid AND a.type = 200 AND s.delete_time IS NULL GROUP BY a.oid) a ON g.id = a.oid WHERE g.delete_time IS NULL Order By g.create_time Desc';
     let guides = await db.query(
       sql +
       ' LIMIT :count OFFSET :start ',
@@ -310,10 +328,10 @@ class GuideDao {
    */
   async getCMSGuideByKeyword (q) {
     let sql =
-      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.delete_time as isDelete, g.create_time FROM guide g, user u ';
+      ' SELECT g.id, g.title, u.email, u.nickname, g.img, g.praise, g.text, g.stage, a.arounds, g.create_time FROM guide g LEFT JOIN user u ON g.eid = u.id LEFT JOIN (SELECT a.oid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, art_around a WHERE s.id = a.aid AND a.type = 200 AND s.delete_time IS NULL GROUP BY a.oid) a ON g.id = a.oid ';
     let guides = await db.query(
       sql +
-      ' WHERE g.eid = u.id AND g.title LIKE :q ',
+      ' WHERE g.delete_time IS NULL AND g.title LIKE :q Order By g.create_time Desc ',
       {
         replacements: {
           q: '%' + q + '%'
@@ -359,15 +377,93 @@ class GuideDao {
   }
 
   /**
+   * 推荐攻略
+   * @param {int} id ID号
+   */
+  async recommendGuide (id) {
+    const guide = await Guide.findOne({
+      where: {
+        id,
+        delete_time: null
+      }
+    });
+    if (!guide) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    if (guide.stage === 0) {
+      throw new NotFound({
+        msg: '攻略已封禁，不可推荐'
+      });
+    }
+    if (guide.stage === 2) {
+      throw new NotFound({
+        msg: '攻略已推荐'
+      });
+    }
+    guide.stage = 2;
+    guide.save();
+  }
+
+  /**
+   * 取消推荐攻略
+   * @param {int} id ID号
+   */
+  async disrecommendGuide (id) {
+    const guide = await Guide.findOne({
+      where: {
+        id,
+        delete_time: null
+      }
+    });
+    if (!guide) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    if (guide.stage === 0) {
+      throw new NotFound({
+        msg: '攻略已封禁，不可取消推荐'
+      });
+    }
+    if (guide.stage === 1) {
+      throw new NotFound({
+        msg: '攻略已取消推荐'
+      });
+    }
+    guide.stage = 1;
+    guide.save();
+  }
+
+  /**
    * 开放攻略
    * @param {int} id ID号
    */
   async permitGuide (id) {
-    await Guide.restore({
+    const guide = await Guide.findOne({
       where: {
-        id
+        id,
+        delete_time: null
       }
     });
+    if (!guide) {
+      throw new NotFound({
+        msg: '没有找到相关攻略'
+      });
+    }
+    if (guide.stage === 2) {
+      throw new NotFound({
+        msg: '攻略已推荐，不可开放'
+      });
+    }
+    if (guide.stage === 1) {
+      throw new NotFound({
+        msg: '攻略已开放'
+      });
+    }
+    guide.stage = 1;
+    guide.save();
   }
 
   /**
@@ -377,7 +473,8 @@ class GuideDao {
   async prohibitGuide (id) {
     const guide = await Guide.findOne({
       where: {
-        id
+        id,
+        delete_time: null
       }
     });
     if (!guide) {
@@ -385,7 +482,18 @@ class GuideDao {
         msg: '没有找到相关攻略'
       });
     }
-    guide.destroy();
+    if (guide.stage === 2) {
+      throw new NotFound({
+        msg: '攻略已推荐，不可封禁'
+      });
+    }
+    if (guide.stage === 0) {
+      throw new NotFound({
+        msg: '攻略已封禁'
+      });
+    }
+    guide.stage = 0;
+    guide.save();
   }
 
   /**
@@ -397,7 +505,7 @@ class GuideDao {
       where: {
         id
       }
-    }, { force: true });
+    });
   }
 }
 

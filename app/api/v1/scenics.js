@@ -56,15 +56,12 @@ scenicsApi.get('/hotScenics', async ctx => {
 scenicsApi.get('/:id', async ctx => {
   const v = await new PositiveIdValidator().validate(ctx);
   const id = v.get('path.id');
-  const { scenics, arounds } = await scenicsDto.getScenics(id);
-  if (!scenics) {
-    throw new NotFound({
-      msg: '没有找到相关景点'
-    });
-  }
+  const { scenics, arounds, notes, guides } = await scenicsDto.getScenics(id);
   ctx.json({
     scenics,
-    arounds
+    arounds,
+    notes,
+    guides
   });
 });
 

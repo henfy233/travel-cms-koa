@@ -17,7 +17,7 @@ class NoteDao {
       'SELECT n.*, u.nickname, u.avatar, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL Order By n.create_time Desc LIMIT :count OFFSET :start',
+      ' LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -27,7 +27,7 @@ class NoteDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM note n WHERE n.delete_time IS NULL';
+      'SELECT COUNT(*) as count FROM note n WHERE n.delete_time IS NULL AND n.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -85,7 +85,7 @@ class NoteDao {
       'SELECT n.id, u.nickname, u.avatar, n.title, n.eid, n.img, n.text, n.create_time FROM note n LEFT JOIN user u ON n.eid = u.id WHERE';
     let notes = await db.query(
       sql +
-      ' n.delete_time IS NULL AND n.id = :id ',
+      ' n.delete_time IS NULL AND n.stage > 0 AND n.id = :id ',
       {
         replacements: {
           id
@@ -95,7 +95,7 @@ class NoteDao {
     );
     let note = notes[0];
     let sql1 =
-      ' SELECT s.id, s.name, s.image FROM note s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
+      ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
     let arounds = await db.query(
       sql1 +
       ' a.oid = :id AND a.type = 100 ',
@@ -122,7 +122,7 @@ class NoteDao {
       'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL Order By note.praise Desc LIMIT :count ',
+      ' LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL AND note.stage > 0 Order By note.praise Desc LIMIT :count ',
       {
         replacements: {
           count: num
@@ -145,7 +145,7 @@ class NoteDao {
       'SELECT note.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL Order By note.create_time Desc LIMIT :count OFFSET :start',
+      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL AND note.stage > 0 Order By note.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           id: user.id,
@@ -156,7 +156,7 @@ class NoteDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM note WHERE note.delete_time IS NULL';
+      'SELECT COUNT(*) as count FROM note WHERE note.delete_time IS NULL AND note.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -184,7 +184,7 @@ class NoteDao {
       'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL Order By note.praise Desc LIMIT :count ',
+      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL AND note.stage > 0 Order By note.praise Desc LIMIT :count ',
       {
         replacements: {
           id: user.id,
@@ -206,7 +206,7 @@ class NoteDao {
       'SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
     let notes = await db.query(
       sql +
-      ' WHERE n.eid = u.id AND u.id = :id AND n.delete_time IS NULL Order By n.create_time Desc ',
+      ' WHERE n.eid = u.id AND u.id = :id AND n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc ',
       {
         replacements: {
           id: user.id
@@ -226,11 +226,25 @@ class NoteDao {
       'SELECT n.id, n.title, n.eid, n.img, n.praise, n.text, n.create_time,  u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
     let notes = await db.query(
       sql +
-      ' WHERE n.eid = u.id AND n.delete_time IS NULL AND n.title LIKE :q Order By n.create_time Desc ',
+      ' WHERE n.eid = u.id AND n.delete_time IS NULL AND n.stage > 0 AND n.title LIKE :q Order By n.create_time Desc ',
       {
         replacements: {
           q: '%' + q + '%'
         },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return notes;
+  }
+
+  /**
+   * 获取推荐游记
+   */
+  async getRecommendNotes () {
+    const sql = 'SELECT n.id, n.title, n.img FROM note n WHERE n.delete_time IS NULL AND n.stage = 2 ';
+    let notes = await db.query(
+      sql,
+      {
         type: db.QueryTypes.SELECT
       }
     );
@@ -258,7 +272,6 @@ class NoteDao {
     }
     return db.transaction(async t => {
       await note.destroy({
-        force: true,
         transaction: t
       });
       await user.decrement('notes', {
@@ -276,7 +289,7 @@ class NoteDao {
    */
   async getCMSAllNote (ctx, start, count1) {
     let sql =
-      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.delete_time as isDelete, n.create_time FROM note n, user u WHERE n.eid = u.id Order By n.create_time Desc';
+      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.text, n.stage, a.arounds, n.create_time FROM note n LEFT JOIN user u ON n.eid = u.id LEFT JOIN (SELECT a.oid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, art_around a WHERE s.id = a.aid AND a.type = 100 AND s.delete_time IS NULL GROUP BY a.oid) a ON n.id = a.oid WHERE n.delete_time IS NULL Order By n.create_time Desc ';
     let notes = await db.query(
       sql +
       ' LIMIT :count OFFSET :start ',
@@ -310,10 +323,10 @@ class NoteDao {
    */
   async getCMSNoteByKeyword (q) {
     let sql =
-      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.delete_time as isDelete, n.create_time FROM note n, user u ';
+      ' SELECT n.id, n.title, u.email, u.nickname, n.img, n.praise, n.text, n.stage, a.arounds, n.create_time FROM note n LEFT JOIN user u ON n.eid = u.id LEFT JOIN (SELECT a.oid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, art_around a WHERE s.id = a.aid AND a.type = 100 AND s.delete_time IS NULL GROUP BY a.oid) a ON n.id = a.oid ';
     let notes = await db.query(
       sql +
-      ' WHERE n.eid = u.id AND n.title LIKE :q ',
+      ' WHERE n.delete_time IS NULL AND n.title LIKE :q  Order By n.create_time Desc ',
       {
         replacements: {
           q: '%' + q + '%'
@@ -359,15 +372,93 @@ class NoteDao {
   }
 
   /**
+   * 推荐游记
+   * @param {int} id ID号
+   */
+  async recommendNote (id) {
+    const note = await Note.findOne({
+      where: {
+        id,
+        delete_time: null
+      }
+    });
+    if (!note) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    if (note.stage === 0) {
+      throw new NotFound({
+        msg: '游记已封禁，不可推荐'
+      });
+    }
+    if (note.stage === 2) {
+      throw new NotFound({
+        msg: '游记已推荐'
+      });
+    }
+    note.stage = 2;
+    note.save();
+  }
+
+  /**
+   * 取消推荐游记
+   * @param {int} id ID号
+   */
+  async disrecommendNote (id) {
+    const note = await Note.findOne({
+      where: {
+        id,
+        delete_time: null
+      }
+    });
+    if (!note) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    if (note.stage === 0) {
+      throw new NotFound({
+        msg: '游记已封禁，不可取消推荐'
+      });
+    }
+    if (note.stage === 1) {
+      throw new NotFound({
+        msg: '游记已取消推荐'
+      });
+    }
+    note.stage = 1;
+    note.save();
+  }
+
+  /**
    * 开放游记
    * @param {int} id ID号
    */
   async permitNote (id) {
-    await Note.restore({
+    const note = await Note.findOne({
       where: {
-        id
+        id,
+        delete_time: null
       }
     });
+    if (!note) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    if (note.stage === 2) {
+      throw new NotFound({
+        msg: '游记已推荐，不可开放'
+      });
+    }
+    if (note.stage === 1) {
+      throw new NotFound({
+        msg: '游记已开放'
+      });
+    }
+    note.stage = 1;
+    note.save();
   }
 
   /**
@@ -377,7 +468,8 @@ class NoteDao {
   async prohibitNote (id) {
     const note = await Note.findOne({
       where: {
-        id
+        id,
+        delete_time: null
       }
     });
     if (!note) {
@@ -385,11 +477,22 @@ class NoteDao {
         msg: '没有找到相关游记'
       });
     }
-    note.destroy();
+    if (note.stage === 2) {
+      throw new NotFound({
+        msg: '游记已推荐，不可封禁'
+      });
+    }
+    if (note.stage === 0) {
+      throw new NotFound({
+        msg: '游记已封禁'
+      });
+    }
+    note.stage = 0;
+    note.save();
   }
 
   /**
-   * 彻底删除游记
+   * 删除游记
    * @param {int} id ID号
    */
   async deleteNote (id) {
@@ -397,13 +500,8 @@ class NoteDao {
       where: {
         id
       }
-    }, { force: true });
+    });
   }
 }
-
-// const NoteBelongsToUser = Note.belongsTo(User, {
-//   // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
-//   foreignKey: eid', targetKey: 'id', as: 'u'
-// });
 
 module.exports = { NoteDao };

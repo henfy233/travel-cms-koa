@@ -12,12 +12,23 @@ class ScenicsDao {
    * @param {int} id 景点ID
    */
   async getScenics (id) {
-    const scenics = await Scenics.findOne({
-      where: {
-        id,
-        delete_time: null
+    let sql = 'SELECT s.id, s.name, s.position, s.image, s.praise FROM scenics s WHERE ';
+    let scenicss = await db.query(
+      sql +
+      ' s.id = :id AND s.delete_time IS NULL ',
+      {
+        replacements: {
+          id
+        },
+        type: db.QueryTypes.SELECT
       }
-    });
+    );
+    if (!scenicss) {
+      throw new NotFound({
+        msg: '没有找到相关景点'
+      });
+    }
+    let scenics = scenicss[0];
     let arounds = await Around.findAll({
       attributes: [
         Sequelize.col('s.id'),
@@ -25,7 +36,7 @@ class ScenicsDao {
         Sequelize.col('s.image')
       ],
       where: {
-        sid: scenics.id,
+        sid: id,
         delete_time: null
       },
       include: [{
@@ -34,9 +45,33 @@ class ScenicsDao {
       }],
       raw: true
     });
+    let sql1 = 'SELECT n.id, n.title, n.img FROM art_around a, note n WHERE a.oid = n.id AND a.type = 100 ';
+    let notes = await db.query(
+      sql1 +
+        '  AND a.aid = :id AND n.delete_time IS NULL ',
+      {
+        replacements: {
+          id: id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql2 = 'SELECT g.id, g.title, g.img FROM art_around a, guide g WHERE a.oid = g.id AND a.type = 200 ';
+    let guides = await db.query(
+      sql2 +
+        '  AND a.aid = :id AND g.delete_time IS NULL  ',
+      {
+        replacements: {
+          id: id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
     return {
       scenics,
-      arounds
+      arounds,
+      notes,
+      guides
     };
   }
 
@@ -66,7 +101,8 @@ class ScenicsDao {
     const scenics = await Scenics.findAll({
       attributes: [
         'id',
-        'name'
+        'name',
+        'image'
       ],
       where: {
         delete_time: null
@@ -103,7 +139,7 @@ class ScenicsDao {
    */
   async getCMSAllScenics (ctx, start, count1) {
     let sql =
-      ' SELECT s.id, s.name, s.position, s.image FROM scenics s WHERE s.delete_time IS NULL ';
+      ' SELECT s.id, s.name, s.position, s.image, a.arounds FROM scenics s LEFT JOIN (SELECT a.sid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, around a WHERE s.id = a.aid AND s.delete_time IS NULL GROUP BY a.sid) a ON s.id = a.sid WHERE s.delete_time IS NULL ';
     let scenics = await db.query(
       sql +
       ' LIMIT :count OFFSET :start',
@@ -128,6 +164,27 @@ class ScenicsDao {
   }
 
   /**
+   * CMS 根据ID获取景点
+   * @param {int} id 景点ID
+   */
+  async getCMSScenics (id) {
+    let sql =
+      ' SELECT s.id, s.name, s.position, s.image FROM scenics s WHERE s.delete_time IS NULL ';
+    let scenicss = await db.query(
+      sql +
+      ' AND s.id = :id ',
+      {
+        replacements: {
+          id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let scenics = scenicss[0];
+    return scenics;
+  }
+
+  /**
    * CMS 创建景点
    * @param {Object} v 返回信息
    */
@@ -143,11 +200,24 @@ class ScenicsDao {
         msg: '景点已存在'
       });
     }
-    const bk = new Scenics();
-    bk.name = v.get('body.name');
-    bk.position = v.get('body.position');
-    bk.image = v.get('body.image');
-    bk.save();
+    const arounds = v.get('body.arounds');
+    return db.transaction(async t => {
+      const scenics = await Scenics.create({
+        name: v.get('body.name'),
+        position: v.get('body.position'),
+        image: v.get('body.image')
+      }, {
+        transaction: t
+      });
+      for (var i = 0; i < arounds.length; i++) {
+        await Around.create({
+          sid: scenics.id,
+          aid: arounds[i]
+        }, {
+          transaction: t
+        });
+      }
+    });
   }
 
   /**

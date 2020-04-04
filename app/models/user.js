@@ -84,10 +84,10 @@ User.init(
     avatar: {
       type: Sequelize.STRING(500),
       allowNull: true,
-      comment: '头像url',
-      get () {
-        return this.getDataValue('avatar') ? config.siteDomain + '/assets/' + this.getDataValue('avatar') : null;
-      }
+      comment: '头像url'
+      // get () {
+      //   return this.getDataValue('avatar') ? config.siteDomain + '/assets/' + this.getDataValue('avatar') : null;
+      // }
     },
     city: {
       type: Sequelize.STRING(20),

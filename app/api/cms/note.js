@@ -50,6 +50,27 @@ note.linGet(
 );
 
 note.linGet(
+  'getNoteByKeyword',
+  '/search',
+  {
+    auth: '根据关键词获取游记',
+    module: '游记',
+    mount: false
+  },
+  loginRequired,
+  async ctx => {
+    const v = await new SearchValidator().validate(ctx);
+    const notes = await noteDto.getCMSNoteByKeyword(v.get('query.q'));
+    if (!notes || notes.length < 1) {
+      throw new NotFound({
+        msg: '没有找到相关游记'
+      });
+    }
+    ctx.json(notes);
+  }
+);
+
+note.linGet(
   'getNoteById',
   '/:id',
   {
@@ -75,27 +96,46 @@ note.linGet(
 );
 
 note.linGet(
-  'getNoteByKeyword',
-  '/search',
+  'recommendNote',
+  '/rec/:id',
   {
-    auth: '根据关键词获取游记',
+    auth: '推荐游记',
     module: '游记',
-    mount: false
+    mount: true
   },
-  loginRequired,
+  groupRequired,
+  logger('管理员推荐了游记'),
   async ctx => {
-    const v = await new SearchValidator().validate(ctx);
-    const notes = await noteDto.getCMSNoteByKeyword(v.get('query.q'));
-    if (!notes || notes.length < 1) {
-      throw new NotFound({
-        msg: '没有找到相关游记'
-      });
-    }
-    ctx.json(notes);
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await noteDto.recommendNote(id);
+    ctx.success({
+      msg: '推荐游记成功'
+    });
   }
 );
 
-note.linDelete(
+note.linGet(
+  'disrecommendNote',
+  '/dis/:id',
+  {
+    auth: '取消推荐游记',
+    module: '游记',
+    mount: true
+  },
+  groupRequired,
+  logger('管理员取消推荐了游记'),
+  async ctx => {
+    const v = await new PositiveIdValidator().validate(ctx);
+    const id = v.get('path.id');
+    await noteDto.disrecommendNote(id);
+    ctx.success({
+      msg: '取消推荐游记成功'
+    });
+  }
+);
+
+note.linGet(
   'permitNote',
   '/per/:id',
   {
@@ -115,7 +155,7 @@ note.linDelete(
   }
 );
 
-note.linDelete(
+note.linGet(
   'prohibitNote',
   '/pro/:id',
   {

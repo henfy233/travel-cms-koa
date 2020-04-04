@@ -15,6 +15,7 @@ class Guide extends Model {
       img: this.img,
       praise: this.praise,
       text: this.text,
+      stage: this.stage,
       create_time: this.createTime
     };
     return origin;
@@ -56,6 +57,12 @@ Guide.init(
       type: Sequelize.TEXT,
       allowNull: false,
       comment: '攻略内容'
+    },
+    stage: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      comment: '状态'
     }
   },
   merge(

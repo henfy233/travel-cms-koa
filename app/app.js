@@ -29,7 +29,7 @@ function indexPage (app) {
       pointer;text-decoration: none} a:hover{text-decoration:underline; } body{ background: #fff; font-family:
       "Century Gothic","Microsoft yahei"; color: #333;font-size:18px;} h1{ font-size: 100px; font-weight: normal;
       margin-bottom: 12px; } p{ line-height: 1.6em; font-size: 42px }</style><div style="padding: 24px 48px;"><p>
-      Lin <br/><span style="font-size:30px">心上无垢，林间有风。</span></p></div> `;
+      Lin <br/><span style="font-size:30px">游乐记-旅游社交网站</span></p></div> `;
   });
 }
 
