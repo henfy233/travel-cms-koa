@@ -14,10 +14,10 @@ class GuideDao {
    */
   async getGuides (start, count1) {
     let sql =
-      'SELECT guide.*,user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+      'SELECT g.*,u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN user u ON g.eid = u.id WHERE g.delete_time IS NULL AND g.stage > 0 Order By g.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           count: count1,
@@ -27,7 +27,7 @@ class GuideDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL AND g.stage > 0';
+      'SELECT COUNT(*) as count FROM guide g WHERE g.delete_time IS NULL AND g.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -168,10 +168,10 @@ class GuideDao {
   async getLoginGuides (ctx, start, count1) {
     const user = ctx.currentUser;
     let sql =
-      'SELECT guide.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+      'SELECT g.*, u.nickname, u.avatar, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g ';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc LIMIT :count OFFSET :start',
+        ' LEFT JOIN favor f ON g.id = f.art_id AND f.eid = :id AND f.type = 200 LEFT JOIN user u ON g.eid = u.id WHERE g.delete_time IS NULL AND g.stage > 0 Order By g.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           id: user.id,
@@ -182,7 +182,7 @@ class GuideDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM guide WHERE guide.delete_time IS NULL AND guide.stage > 0';
+      'SELECT COUNT(*) as count FROM guide g WHERE g.delete_time IS NULL AND g.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
     });
@@ -207,10 +207,10 @@ class GuideDao {
     const num = v.get('body.num');
     const user = ctx.currentUser;
     let sql =
-      'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide ';
+      'SELECT g.id ,g.eid, g.title, g.img, g.praise, g.text, g.create_time, u.nickname, u.avatar, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g';
     let guides = await db.query(
       sql +
-        ' LEFT JOIN favor ON guide.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON guide.eid = user.id WHERE guide.stage > 0 AND guide.delete_time IS NULL Order By guide.praise Desc LIMIT :count ',
+        ' LEFT JOIN favor f ON g.id = f.art_id AND f.eid = :id AND f.type = 200 LEFT JOIN user u ON g.eid = u.id WHERE g.stage > 0 AND g.delete_time IS NULL Order By g.praise Desc LIMIT :count ',
       {
         replacements: {
           id: user.id,

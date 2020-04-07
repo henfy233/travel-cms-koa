@@ -37,40 +37,26 @@ commentApi.get('/:id', async ctx => {
   ctx.json(comments);
 });
 
-commentApi.linPost(
-  'sendComment',
-  '/sendComment',
-  {
-    auth: '发表评论',
-    module: '用户',
-    mount: false
-  },
-  loginRequire,
-  async ctx => {
-    const v = await new SendCommentValidator().validate(ctx);
-    await commentDto.sendComment(ctx, v);
-    ctx.success({
-      msg: '发表成功'
-    });
-  }
-);
+/**
+ * 发表评论
+ */
+commentApi.post('/sendComment', loginRequire, async ctx => {
+  const v = await new SendCommentValidator().validate(ctx);
+  await commentDto.sendComment(ctx, v);
+  ctx.success({
+    msg: '发表成功'
+  });
+});
 
-commentApi.linPost(
-  'sendReply',
-  '/sendReply',
-  {
-    auth: '发表回复',
-    module: '用户',
-    mount: false
-  },
-  loginRequire,
-  async ctx => {
-    const v = await new SendReplyValidator().validate(ctx);
-    await commentDto.sendReply(ctx, v);
-    ctx.success({
-      msg: '发表成功'
-    });
-  }
-);
+/**
+ * 发表回复
+ */
+commentApi.post('/sendReply', loginRequire, async ctx => {
+  const v = await new SendReplyValidator().validate(ctx);
+  await commentDto.sendReply(ctx, v);
+  ctx.success({
+    msg: '发表成功'
+  });
+});
 
 module.exports = { commentApi, [disableLoading]: false };

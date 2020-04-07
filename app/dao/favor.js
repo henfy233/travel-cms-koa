@@ -15,9 +15,7 @@ class FavorDao {
   async like (art_id, type, eid) {
     const favor = await Favor.findOne({
       where: {
-        art_id,
-        type,
-        eid
+        art_id, type, eid
       }
     });
     if (favor) {
@@ -27,9 +25,7 @@ class FavorDao {
     }
     return db.transaction(async t => {
       await Favor.create({
-        art_id,
-        type,
-        eid
+        art_id, type, eid
       }, {
         transaction: t
       });
@@ -51,9 +47,7 @@ class FavorDao {
   async disLike (art_id, type, eid) {
     const favor = await Favor.findOne({
       where: {
-        art_id,
-        type,
-        eid
+        art_id, type, eid
       }
     });
     if (!favor) {

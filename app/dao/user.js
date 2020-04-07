@@ -115,16 +115,12 @@ class UserDao {
       await Follow.create({
         eid: user.id,
         be_eid: v.get('body.id')
-      }, {
-        transaction: t
-      });
+      }, { transaction: t });
       await user.increment('follows', {
-        by: 1,
-        transaction: t
+        by: 1, transaction: t
       });
       await star.increment('fans', {
-        by: 1,
-        transaction: t
+        by: 1, transaction: t
       });
     });
   }
@@ -170,11 +166,10 @@ class UserDao {
   }
 
   /**
-   * 获取我的粉丝
-   * @param {object} ctx 用户信息
+   * 获取用户ID的粉丝
+   * @param {object} id 用户信息
    */
-  async getMyFans (ctx) {
-    const user = ctx.currentUser;
+  async getFansById (id) {
     let sql =
       'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows FROM user u, follow f ';
     let fans = await db.query(
@@ -182,7 +177,7 @@ class UserDao {
         ' WHERE u.id = f.eid AND f.be_eid = :id AND u.delete_time IS NULL ',
       {
         replacements: {
-          id: user.id
+          id
         },
         type: db.QueryTypes.SELECT
       }
@@ -191,11 +186,10 @@ class UserDao {
   }
 
   /**
-   * 获取我的关注
-   * @param {object} ctx 用户信息
+   * 获取用户ID的关注
+   * @param {object} id 用户信息
    */
-  async getMyFollows (ctx) {
-    const user = ctx.currentUser;
+  async getFollowsById (id) {
     let sql =
       'SELECT u.id, u.nickname, u.email, u.avatar, u.city, u.sex, u.introduce, u.notes, u.guides, u.fans, u.follows, f.id as followed FROM user u, follow f ';
     let follows = await db.query(
@@ -203,7 +197,7 @@ class UserDao {
         ' WHERE u.id = f.be_eid AND f.eid = :id AND u.delete_time IS NULL ',
       {
         replacements: {
-          id: user.id
+          id
         },
         type: db.QueryTypes.SELECT
       }

@@ -1,6 +1,6 @@
 'use strict';
 
-const { NotFound, unsets } = require('lin-mizar');
+const { NotFound } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Note } = require('../models/note');
 const { ArtAround } = require('../models/art_around.js');
@@ -14,7 +14,7 @@ class NoteDao {
    */
   async getNotes (start, count1) {
     let sql =
-      'SELECT n.*, u.nickname, u.avatar, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n';
+      'SELECT n.id, n.title, u.nickname, u.avatar, n.img, n.praise, n.text, n.create_time, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n';
     let notes = await db.query(
       sql +
       ' LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc LIMIT :count OFFSET :start',
@@ -30,11 +30,6 @@ class NoteDao {
       'SELECT COUNT(*) as count FROM note n WHERE n.delete_time IS NULL AND n.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
-    });
-    notes.map(notes => {
-      unsets(notes, ['update_time', 'delete_time']);
-      // notes.create_time = dayjs(notes.create_time).unix();
-      return notes;
     });
     total = total[0]['count'];
     return {
@@ -57,21 +52,16 @@ class NoteDao {
         eid: user.id,
         img: v.get('body.img'),
         text: v.get('body.text')
-      }, {
-        transaction: t
-      });
+      }, { transaction: t });
       for (var i = 0; i < arounds.length; i++) {
         await ArtAround.create({
           oid: note.id,
           type: 100,
           aid: arounds[i]
-        }, {
-          transaction: t
-        });
+        }, { transaction: t });
       }
       await user.increment('notes', {
-        by: 1,
-        transaction: t
+        by: 1, transaction: t
       });
     });
   }
@@ -119,10 +109,10 @@ class NoteDao {
   async getHotNotes (v) {
     const num = v.get('body.num');
     let sql =
-      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+      'SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.nickname, u.avatar, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n ';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL AND note.stage > 0 Order By note.praise Desc LIMIT :count ',
+      ' LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.praise Desc LIMIT :count ',
       {
         replacements: {
           count: num
@@ -142,10 +132,10 @@ class NoteDao {
   async getLoginNotes (ctx, start, count1) {
     const user = ctx.currentUser;
     let sql =
-      'SELECT note.*,user.`nickname`,user.`avatar`,favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+      ' SELECT n.id, n.title, u.nickname, u.avatar, n.img, n.praise, n.text, n.create_time, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n ';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE note.delete_time IS NULL AND note.stage > 0 Order By note.create_time Desc LIMIT :count OFFSET :start',
+      ' LEFT JOIN favor f ON n.id = f.art_id AND f.eid = :id AND f.type = 100 LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc LIMIT :count OFFSET :start',
       {
         replacements: {
           id: user.id,
@@ -156,14 +146,9 @@ class NoteDao {
       }
     );
     let sql1 =
-      'SELECT COUNT(*) as count FROM note WHERE note.delete_time IS NULL AND note.stage > 0';
+      'SELECT COUNT(*) as count FROM note n WHERE n.delete_time IS NULL AND n.stage > 0';
     let total = await db.query(sql1, {
       type: db.QueryTypes.SELECT
-    });
-    notes.map(notes => {
-      unsets(notes, ['update_time', 'delete_time']);
-      // notes.create_time = dayjs(notes.create_time).unix();
-      return notes;
     });
     total = total[0]['count'];
     return {
@@ -181,10 +166,10 @@ class NoteDao {
     const num = v.get('body.num');
     const user = ctx.currentUser;
     let sql =
-      'SELECT note.id ,note.eid, note.title, note.img, note.praise, note.text, note.create_time, user.`nickname`,user.`avatar`,  favor.`id` as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = note.id AND ci.type = 100) commentNum FROM note ';
+      'SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.nickname, u.avatar, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n';
     let notes = await db.query(
       sql +
-      ' LEFT JOIN favor ON note.id = favor.art_id AND favor.eid = :id LEFT JOIN user ON note.eid = user.id WHERE  note.delete_time IS NULL AND note.stage > 0 Order By note.praise Desc LIMIT :count ',
+      ' LEFT JOIN favor f ON n.id = f.art_id AND f.eid = :id AND f.type = 100 LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.praise Desc LIMIT :count ',
       {
         replacements: {
           id: user.id,
@@ -378,8 +363,7 @@ class NoteDao {
   async recommendNote (id) {
     const note = await Note.findOne({
       where: {
-        id,
-        delete_time: null
+        id, delete_time: null
       }
     });
     if (!note) {
@@ -468,8 +452,7 @@ class NoteDao {
   async prohibitNote (id) {
     const note = await Note.findOne({
       where: {
-        id,
-        delete_time: null
+        id, delete_time: null
       }
     });
     if (!note) {

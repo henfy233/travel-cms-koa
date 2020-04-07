@@ -31,23 +31,16 @@ const noteApi = new LinRouter({
 // note 的dao 数据库访问层实例
 const noteDto = new NoteDao();
 
-noteApi.linPost(
-  'addNote',
-  '/',
-  {
-    auth: '发布游记',
-    module: '用户',
-    mount: false
-  },
-  loginRequire,
-  async ctx => {
-    const v = await new PostArticleValidator().validate(ctx);
-    await noteDto.postNote(ctx, v);
-    ctx.success({
-      msg: '发布游记成功'
-    });
-  }
-);
+/**
+ * 发布游记
+ */
+noteApi.post('/', loginRequire, async ctx => {
+  const v = await new PostArticleValidator().validate(ctx);
+  await noteDto.postNote(ctx, v);
+  ctx.success({
+    msg: '发布游记成功'
+  });
+});
 
 /**
  * 获取所有游记 包含用户信息
