@@ -63,6 +63,54 @@ class LoginValidator extends LinValidator {
   }
 }
 
+class ForgetValidator extends LinValidator {
+  constructor () {
+    super();
+    this.email = [
+      new Rule('isOptional'),
+      new Rule('isEmail', '电子邮箱不符合规范，请输入正确的邮箱')
+    ];
+    this.code = [
+      new Rule('isNotEmpty', '验证码不可为空')
+    ];
+    this.password = [
+      new Rule(
+        'matches',
+        '密码长度必须在6~22位之间，包含字符、数字和 _ ',
+        /^[A-Za-z0-9_*&$#@]{6,22}$/
+      )
+    ];
+    this.confirm_password = new Rule('isNotEmpty', '确认密码不可为空');
+  }
+
+  validateConfirmPassword (data) {
+    if (!data.body.password || !data.body.confirm_password) {
+      return [false, '两次输入的密码不一致，请重新输入'];
+    }
+    let ok = data.body.password === data.body.confirm_password;
+    if (ok) {
+      return ok;
+    } else {
+      return [false, '两次输入的密码不一致，请重新输入'];
+    }
+  }
+
+  async validateEmail (vals) {
+    const email = vals.body.email;
+    const user = await User.findOne({
+      where: {
+        email,
+        delete_time: null
+      }
+    });
+    if (user) {
+      return true;
+    } else {
+      return [false, 'email不存在,请更换邮箱'];
+    }
+  }
+}
+
 class GetInformationValidator extends LinValidator {
   constructor () {
     super();
@@ -76,11 +124,11 @@ class GetInformationValidator extends LinValidator {
 class VerifyValidator extends LinValidator {
   constructor () {
     super();
-    this.nickname = new Rule('isNotEmpty', '昵称不可为空');
     this.email = new Rule('isNotEmpty', '邮箱不可为空');
   }
 
   async validateEmail (vals) {
+    const type = vals.body.type;
     const email = vals.body.email;
     const user = await User.findOne({
       where: {
@@ -88,10 +136,18 @@ class VerifyValidator extends LinValidator {
         delete_time: null
       }
     });
-    if (user) {
-      return [false, 'email已存在,请更换邮箱'];
+    if (type === 1) {
+      if (user) {
+        return [false, 'email已存在,请更换邮箱'];
+      } else {
+        return true;
+      }
     } else {
-      return true;
+      if (user) {
+        return true;
+      } else {
+        return [false, 'email已存在,请更换邮箱'];
+      }
     }
   }
 }
@@ -140,6 +196,7 @@ class ChangePasswordValidator extends LinValidator {
 module.exports = {
   RegisterValidator,
   LoginValidator,
+  ForgetValidator,
   VerifyValidator,
   GetInformationValidator,
   CreateOrUpdateUserValidator,

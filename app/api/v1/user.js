@@ -20,6 +20,7 @@ const {
 const {
   RegisterValidator,
   LoginValidator,
+  ForgetValidator,
   VerifyValidator,
   GetInformationValidator,
   // CreateOrUpdateUserValidator,
@@ -67,6 +68,32 @@ userApi.post('/register', async ctx => {
   await userDto.createUser(v);
   ctx.success({
     msg: '注册成功'
+  });
+});
+
+/**
+ * 忘记密码
+ */
+userApi.post('/forget', async ctx => {
+  const v = await new ForgetValidator().validate(ctx);
+  const email = v.get('body.email');
+  const code = v.get('body.code');
+  const saveCode = await Store.hget(`nodemail:${email}`, 'code');
+  const saveExpire = await Store.hget(`nodemail:${email}`, 'expire');
+  if (code === saveCode) { // 验证码相同
+    if (new Date().getTime() - saveExpire > 0) { // 验证码过期
+      throw new Failed({
+        msg: '验证码已过期，请重新尝试'
+      });
+    }
+  } else { // 验证码错误
+    throw new Failed({
+      msg: '请填写正确的验证码'
+    });
+  }
+  await userDto.forgetPassword(v);
+  ctx.success({
+    msg: '修改密码成功'
   });
 });
 

@@ -88,6 +88,26 @@ class UserDao {
   }
 
   /**
+   * 修改密码
+   * @param {object} v 返回信息
+   */
+  async forgetPassword (v) {
+    const user = await User.findOne({
+      where: {
+        email: v.get('body.email'),
+        delete_time: null
+      }
+    });
+    if (!user) {
+      throw new Forbidden({
+        msg: '用户不存在'
+      });
+    }
+    user.password = v.get('body.confirm_password');
+    user.save();
+  }
+
+  /**
    * 关注用户
    * @param {object} ctx 用户信息
    * @param {object} v 返回信息
