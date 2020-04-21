@@ -11,6 +11,7 @@ class Scenics extends Model {
       id: this.id,
       name: this.name,
       position: this.position,
+      city: this.city,
       image: this.image,
       praise: this.praise,
       create_time: this.createTime
@@ -29,17 +30,22 @@ Scenics.init(
     name: {
       type: Sequelize.STRING(20),
       allowNull: false,
-      comment: '旅游地名字'
+      comment: '景点名字'
+    },
+    city: {
+      type: Sequelize.STRING(20),
+      allowNull: false,
+      comment: '地点'
     },
     position: {
       type: Sequelize.STRING(30),
       allowNull: false,
-      comment: '旅游地经纬度'
+      comment: '经纬度'
     },
     image: {
       type: Sequelize.STRING(100),
       allowNull: true,
-      comment: '旅游地封面url'
+      comment: '封面url'
     },
     praise: {
       type: Sequelize.INTEGER,

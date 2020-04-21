@@ -104,7 +104,7 @@ note.linGet(
     mount: true
   },
   groupRequired,
-  logger('{user.username}推荐了游记'),
+  logger('管理员推荐了游记'),
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
@@ -124,7 +124,7 @@ note.linGet(
     mount: true
   },
   groupRequired,
-  logger('{user.username}取消推荐了游记'),
+  logger('管理员取消推荐了游记'),
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
@@ -144,7 +144,7 @@ note.linGet(
     mount: true
   },
   groupRequired,
-  logger('{user.username}开放了游记'),
+  logger('管理员开放了游记'),
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
@@ -164,7 +164,7 @@ note.linGet(
     mount: true
   },
   groupRequired,
-  logger('{user.username}封禁了游记'),
+  logger('管理员封禁了游记'),
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');
@@ -184,7 +184,7 @@ note.linDelete(
     mount: true
   },
   groupRequired,
-  logger('{user.username}删除了游记'),
+  logger('管理员删除了游记'),
   async ctx => {
     const v = await new PositiveIdValidator().validate(ctx);
     const id = v.get('path.id');

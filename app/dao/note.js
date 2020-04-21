@@ -72,13 +72,52 @@ class NoteDao {
    */
   async getNote (id) {
     let sql =
-      'SELECT n.id, u.nickname, u.avatar, n.title, n.eid, n.img, n.text, n.create_time FROM note n LEFT JOIN user u ON n.eid = u.id WHERE';
+      ' SELECT n.id, u.nickname, u.avatar, n.title, n.eid, n.img, n.praise, n.text, n.create_time FROM note n LEFT JOIN user u ON n.eid = u.id WHERE ';
     let notes = await db.query(
       sql +
       ' n.delete_time IS NULL AND n.stage > 0 AND n.id = :id ',
       {
         replacements: {
           id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let note = notes[0];
+    let sql1 =
+      ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
+    let arounds = await db.query(
+      sql1 +
+      ' a.oid = :id AND a.type = 100 ',
+      {
+        replacements: {
+          id: note.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return {
+      note,
+      arounds
+    };
+  }
+
+  /**
+   * Login 根据ID获取游记
+   * @param {Object} ctx 用户信息
+   * @param {int} id ID号
+   */
+  async getLoginNote (ctx, id) {
+    const user = ctx.currentUser;
+    let sql =
+      ' SELECT n.id, u.nickname, u.avatar, n.title, n.eid, n.img, n.praise, n.text, n.create_time, f.id as liked FROM note n LEFT JOIN user u ON n.eid = u.id ';
+    let notes = await db.query(
+      sql +
+      ' LEFT JOIN favor f ON n.id = f.art_id AND f.eid = :uid AND f.type = 100 WHERE n.delete_time IS NULL AND n.stage > 0 AND n.id = :id ',
+      {
+        replacements: {
+          id,
+          uid: user.id
         },
         type: db.QueryTypes.SELECT
       }
@@ -132,7 +171,7 @@ class NoteDao {
   async getLoginNotes (ctx, start, count1) {
     const user = ctx.currentUser;
     let sql =
-      ' SELECT n.id, n.title, u.nickname, u.avatar, n.img, n.praise, n.text, n.create_time, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n ';
+      ' SELECT n.id, n.title, n.eid, u.nickname, u.avatar, n.img, n.praise, n.text, n.create_time, f.id as liked, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n ';
     let notes = await db.query(
       sql +
       ' LEFT JOIN favor f ON n.id = f.art_id AND f.eid = :id AND f.type = 100 LEFT JOIN user u ON n.eid = u.id WHERE n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc LIMIT :count OFFSET :start',
@@ -182,19 +221,18 @@ class NoteDao {
   }
 
   /**
-   * 获取我的游记
-   * @param {object} ctx 用户信息
+   * 根据用户ID获取游记
+   * @param {int} id 用户ID
    */
-  async getMyNotes (ctx) {
-    const user = ctx.currentUser;
+  async getNotesById (id) {
     let sql =
-      'SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
+      ' SELECT n.id ,n.eid, n.title, n.img, n.praise, n.text, n.create_time, u.`nickname`,u.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = n.id AND ci.type = 100) commentNum FROM note n, user u ';
     let notes = await db.query(
       sql +
       ' WHERE n.eid = u.id AND u.id = :id AND n.delete_time IS NULL AND n.stage > 0 Order By n.create_time Desc ',
       {
         replacements: {
-          id: user.id
+          id
         },
         type: db.QueryTypes.SELECT
       }
@@ -226,7 +264,7 @@ class NoteDao {
    * 获取推荐游记
    */
   async getRecommendNotes () {
-    const sql = 'SELECT n.id, n.title, n.img FROM note n WHERE n.delete_time IS NULL AND n.stage = 2 ';
+    const sql = 'SELECT n.id, n.title, n.img FROM note n WHERE n.delete_time IS NULL AND n.stage = 2 ORDER BY n.create_time DESC ';
     let notes = await db.query(
       sql,
       {

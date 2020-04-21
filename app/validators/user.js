@@ -48,7 +48,7 @@ class RegisterValidator extends LinValidator {
       }
     });
     if (user) {
-      return [false, 'email已存在,请更换邮箱'];
+      return [false, '该邮箱已被注册'];
     } else {
       return true;
     }
@@ -106,7 +106,7 @@ class ForgetValidator extends LinValidator {
     if (user) {
       return true;
     } else {
-      return [false, 'email不存在,请更换邮箱'];
+      return [false, '该邮箱未被注册'];
     }
   }
 }
@@ -125,6 +125,7 @@ class VerifyValidator extends LinValidator {
   constructor () {
     super();
     this.email = new Rule('isNotEmpty', '邮箱不可为空');
+    this.type = new Rule('isInt', 'type必须为正整数', { min: 1 });
   }
 
   async validateEmail (vals) {
@@ -138,7 +139,7 @@ class VerifyValidator extends LinValidator {
     });
     if (type === 1) {
       if (user) {
-        return [false, 'email已存在,请更换邮箱'];
+        return [false, '该邮箱已被注册'];
       } else {
         return true;
       }
@@ -146,7 +147,7 @@ class VerifyValidator extends LinValidator {
       if (user) {
         return true;
       } else {
-        return [false, 'email已存在,请更换邮箱'];
+        return [false, '该邮箱已被注册'];
       }
     }
   }

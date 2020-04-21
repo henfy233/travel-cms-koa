@@ -3,8 +3,6 @@
 const { NotFound, Forbidden } = require('lin-mizar');
 const { db } = require('lin-mizar/lin/db');
 const { Scenics } = require('../models/scenics');
-const { Around } = require('../models/around');
-const Sequelize = require('sequelize');
 
 class ScenicsDao {
   /**
@@ -12,7 +10,7 @@ class ScenicsDao {
    * @param {int} id 景点ID
    */
   async getScenics (id) {
-    let sql = 'SELECT s.id, s.name, s.position, s.image, s.praise FROM scenics s WHERE ';
+    let sql = 'SELECT s.id, s.name, s.position, s.city, s.image, s.praise FROM scenics s WHERE ';
     let scenicss = await db.query(
       sql +
       ' s.id = :id AND s.delete_time IS NULL ',
@@ -29,25 +27,26 @@ class ScenicsDao {
       });
     }
     let scenics = scenicss[0];
-    let arounds = await Around.findAll({
-      attributes: [
-        Sequelize.col('s.id'),
-        Sequelize.col('s.name'),
-        Sequelize.col('s.image')
-      ],
-      where: {
-        sid: id,
-        delete_time: null
-      },
-      include: [{
-        association: AroundBelongsToScenics,
-        attributes: []
-      }],
-      raw: true
-    });
-    let sql1 = 'SELECT n.id, n.title, n.img FROM art_around a, note n WHERE a.oid = n.id AND a.type = 100 ';
-    let notes = await db.query(
+    if (!scenics) {
+      throw new NotFound({
+        msg: '没有找到相关景点'
+      });
+    }
+    let sql1 = ' SELECT s.* FROM scenics s WHERE s.delete_time IS NULL ';
+    let arounds = await db.query(
       sql1 +
+        ' AND s.city = :city AND s.id NOT IN (:id) ',
+      {
+        replacements: {
+          city: scenics.city,
+          id: scenics.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let sql2 = 'SELECT n.id, n.title, n.img FROM art_around a, note n WHERE a.oid = n.id AND a.type = 100 ';
+    let notes = await db.query(
+      sql2 +
         '  AND a.aid = :id AND n.delete_time IS NULL ',
       {
         replacements: {
@@ -56,9 +55,9 @@ class ScenicsDao {
         type: db.QueryTypes.SELECT
       }
     );
-    let sql2 = 'SELECT g.id, g.title, g.img FROM art_around a, guide g WHERE a.oid = g.id AND a.type = 200 ';
+    let sql3 = 'SELECT g.id, g.title, g.img FROM art_around a, guide g WHERE a.oid = g.id AND a.type = 200 ';
     let guides = await db.query(
-      sql2 +
+      sql3 +
         '  AND a.aid = :id AND g.delete_time IS NULL  ',
       {
         replacements: {
@@ -80,13 +79,32 @@ class ScenicsDao {
    * @param {String} q 关键词
    */
   async getScenicsByKeyword (q) {
-    let sql = 'SELECT s.id, s.name, s.position, s.image, s.praise FROM scenics s WHERE s.delete_time IS NULL AND ';
+    let sql = 'SELECT s.id, s.name, s.image FROM scenics s WHERE s.delete_time IS NULL AND ';
     let scenics = await db.query(
       sql +
         ' s.name LIKE :q ',
       {
         replacements: {
           q: '%' + q + '%'
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return scenics;
+  }
+
+  /**
+   * 根据地点获取景点
+   * @param {String} q 地点
+   */
+  async getScenicsByPosition (q) {
+    let sql = 'SELECT s.id, s.name, s.image FROM scenics s WHERE s.delete_time IS NULL AND ';
+    let scenics = await db.query(
+      sql +
+        ' s.city = :q ',
+      {
+        replacements: {
+          q
         },
         type: db.QueryTypes.SELECT
       }
@@ -139,7 +157,7 @@ class ScenicsDao {
    */
   async getCMSAllScenics (ctx, start, count1) {
     let sql =
-      ' SELECT s.id, s.name, s.position, s.image, a.arounds FROM scenics s LEFT JOIN (SELECT a.sid, GROUP_CONCAT(s.name SEPARATOR \',\') arounds FROM scenics s, around a WHERE s.id = a.aid AND s.delete_time IS NULL GROUP BY a.sid) a ON s.id = a.sid WHERE s.delete_time IS NULL ';
+      ' SELECT s.id, s.name, s.position, s.image, s.city FROM scenics s WHERE s.delete_time IS NULL ';
     let scenics = await db.query(
       sql +
       ' LIMIT :count OFFSET :start',
@@ -169,7 +187,7 @@ class ScenicsDao {
    */
   async getCMSScenics (id) {
     let sql =
-      ' SELECT s.id, s.name, s.position, s.image FROM scenics s WHERE s.delete_time IS NULL ';
+      ' SELECT s.id, s.name, s.position, s.city, s.image FROM scenics s WHERE s.delete_time IS NULL ';
     let scenicss = await db.query(
       sql +
       ' AND s.id = :id ',
@@ -199,24 +217,16 @@ class ScenicsDao {
       throw new Forbidden({
         msg: '景点已存在'
       });
-    }
-    const arounds = v.get('body.arounds');
+    };
     return db.transaction(async t => {
-      const scenics = await Scenics.create({
+      await Scenics.create({
         name: v.get('body.name'),
         position: v.get('body.position'),
+        city: v.get('body.city'),
         image: v.get('body.image')
       }, {
         transaction: t
       });
-      for (var i = 0; i < arounds.length; i++) {
-        await Around.create({
-          sid: scenics.id,
-          aid: arounds[i]
-        }, {
-          transaction: t
-        });
-      }
     });
   }
 
@@ -257,10 +267,5 @@ class ScenicsDao {
     scenics.destroy();
   }
 }
-
-const AroundBelongsToScenics = Around.belongsTo(Scenics, {
-  // 最外部的作用域就定义一下这个映射关系，这样运行周期里只会执行一次
-  foreignKey: 'aid', targetKey: 'id', as: 's'
-});
 
 module.exports = { ScenicsDao };

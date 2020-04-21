@@ -128,25 +128,20 @@ guideApi.linPost(
   }
 );
 
-guideApi.linGet(
-  'getMyGuides',
-  '/myGuides',
-  {
-    auth: '获取我的攻略',
-    module: '用户',
-    mount: false
-  },
-  loginRequire,
-  async ctx => {
-    const guides = await guideDto.getMyGuides(ctx);
-    if (!guides || guides.length < 1) {
-      throw new NotFound({
-        msg: '你还没发表攻略'
-      });
-    }
-    ctx.json(guides);
+/**
+ * 根据用户ID获取攻略
+ */
+guideApi.get('/guides/:id', loginRequire, async ctx => {
+  const v = await new PositiveIdValidator().validate(ctx);
+  const id = v.get('path.id');
+  const guides = await guideDto.getGuidesById(id);
+  if (!guides || guides.length < 1) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
   }
-);
+  ctx.json(guides);
+});
 
 guideApi.get('/recommend', async ctx => {
   const guides = await guideDto.getRecommendGuides();
@@ -187,6 +182,24 @@ guideApi.linDelete(
     });
   }
 );
+
+/**
+ * Login 根据ID值获取攻略
+ */
+guideApi.get('/login/:id', loginRequire, async ctx => {
+  const v = await new PositiveIdValidator().validate(ctx);
+  const id = v.get('path.id');
+  const { guide, arounds } = await guideDto.getLoginGuide(ctx, id);
+  if (!guide) {
+    throw new NotFound({
+      msg: '没有找到相关攻略'
+    });
+  }
+  ctx.json({
+    guide,
+    arounds
+  });
+});
 
 /**
  * 根据ID值获取攻略

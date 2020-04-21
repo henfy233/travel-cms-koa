@@ -6,7 +6,7 @@ const { merge } = require('lodash');
 const { Sequelize, Model } = require('sequelize');
 const { db } = require('lin-mizar/lin/db');
 const bcrypt = require('bcryptjs');
-const config = require('../config/setting');
+// const config = require('../config/setting');
 
 class User extends Model {
   toJSON () {

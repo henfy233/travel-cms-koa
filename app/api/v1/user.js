@@ -119,6 +119,7 @@ userApi.post('/login', async ctx => {
 userApi.post('/verify', async ctx => {
   const v = await new VerifyValidator().validate(ctx);
   const mail = v.get('body.email');
+  const type = v.get('body.type');
   const saveExpire = await Store.hget(`nodemail:${mail}`, 'expire');
   const code = Math.floor(Math.random() * 8999) + 1000; // 生成四位随机验证码
   const expire = new Date().getTime() + 3 * 60 * 1000; // 生成过期时间
@@ -132,7 +133,7 @@ userApi.post('/verify', async ctx => {
     return new Promise((resolve, reject) => {
       email.sendMail(mail, code, state => {
         resolve(state);
-      });
+      }, type);
     });
   }
   await timeout().then(state => {

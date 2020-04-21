@@ -118,24 +118,62 @@ class GuideDao {
   }
 
   /**
-   * 获取我的攻略
-   * @param {object} ctx 用户信息
+   * 根据用户ID获取攻略
+   * @param {int} id 用户ID
    */
-  async getMyGuides (ctx) {
-    const user = ctx.currentUser;
+  async getGuidesById (id) {
     let sql =
-      'SELECT guide.id ,guide.eid, guide.title, guide.img, guide.praise, guide.text, guide.create_time, user.`nickname`,user.`avatar`, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = guide.id AND ci.type = 200) commentNum FROM guide, user ';
+      'SELECT g.id, g.eid, g.title, g.img, g.praise, g.text, g.create_time, u.nickname, u.avatar, (SELECT count(*) FROM comments_info ci WHERE ci.owner_id = g.id AND ci.type = 200) commentNum FROM guide g, user u ';
     let guides = await db.query(
       sql +
-        ' WHERE guide.eid = `user`.id AND `user`.id = :id AND guide.delete_time IS NULL AND guide.stage > 0 Order By guide.create_time Desc ',
+        ' WHERE g.eid = u.id AND u.id = :id AND g.delete_time IS NULL AND g.stage > 0 Order By g.create_time Desc ',
       {
         replacements: {
-          id: user.id
+          id
         },
         type: db.QueryTypes.SELECT
       }
     );
     return guides;
+  }
+
+  /**
+   * Login 根据ID获取攻略
+   * @param {Object} ctx 用户信息
+   * @param {int} id ID号
+   */
+  async getLoginGuide (ctx, id) {
+    const user = ctx.currentUser;
+    let sql =
+      ' SELECT g.id, u.nickname, u.avatar, g.title, g.eid, g.img, g.praise, g.text, g.create_time, f.id as liked FROM guide g LEFT JOIN user u ON g.eid = u.id ';
+    let guides = await db.query(
+      sql +
+      ' LEFT JOIN favor f ON g.id = f.art_id AND f.eid = :uid AND f.type = 200 WHERE g.delete_time IS NULL AND g.stage > 0 AND g.id = :id ',
+      {
+        replacements: {
+          id,
+          uid: user.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    let guide = guides[0];
+    let sql1 =
+      ' SELECT s.id, s.name, s.image FROM scenics s, art_around a WHERE s.id = a.aid AND s.delete_time IS NULL AND ';
+    let arounds = await db.query(
+      sql1 +
+      ' a.oid = :id AND a.type = 200 ',
+      {
+        replacements: {
+          id: guide.id
+        },
+        type: db.QueryTypes.SELECT
+      }
+    );
+    return {
+      guide,
+      arounds
+    };
   }
 
   /**

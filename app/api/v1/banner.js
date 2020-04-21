@@ -23,18 +23,6 @@ const bannerApi = new LinRouter({
 // banner 的dao 数据库访问层实例
 const bannerDto = new BannerDao();
 
-// bannerApi.get('/:id', async ctx => {
-//   const v = await new PositiveIdValidator().validate(ctx);
-//   const id = v.get('path.id');
-//   const banner = await bannerDto.getBanner(id);
-//   if (!banner) {
-//     throw new NotFound({
-//       msg: '没有找到相关Banner'
-//     });
-//   }
-//   ctx.json(banner);
-// });
-
 bannerApi.get('/', async ctx => {
   const banners = await bannerDto.getBanners();
   if (!banners || banners.length < 1) {

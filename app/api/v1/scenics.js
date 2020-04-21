@@ -28,6 +28,17 @@ scenicsApi.get('/', async ctx => {
   ctx.json(scenics);
 });
 
+scenicsApi.get('/position', async ctx => {
+  const v = await new SearchValidator().validate(ctx);
+  const scenics = await scenicsDto.getScenicsByPosition(v.get('query.q'));
+  if (!scenics || scenics.length < 1) {
+    throw new NotFound({
+      msg: '暂无查找到该地点的景点'
+    });
+  }
+  ctx.json(scenics);
+});
+
 scenicsApi.get('/search', async ctx => {
   const v = await new SearchValidator().validate(ctx);
   const scenics = await scenicsDto.getScenicsByKeyword(v.get('query.q'));

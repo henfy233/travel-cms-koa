@@ -14,24 +14,42 @@ let transporter = nodemailer.createTransport({
 // pass 不是邮箱账户的密码而是stmp的授权码（必须是相应邮箱的stmp授权码）
 // 邮箱---设置--账户--POP3/SMTP服务---开启---获取stmp授权码
 
-function sendMail (mail, code, call) {
+/**
+ * 发送邮箱
+ * @param {String} mail 邮箱
+ * @param {String} code 验证码
+ * @param {func} call 回调函数
+ * @param {int} type 类型 1为注册 2为忘记密码
+ */
+function sendMail (mail, code, call, type) {
+  let mailOptions;
   // 发送的配置项
-  let mailOptions = {
-    from: `"旅游社交网站" <${Email.smtp.user}>`, // 发送方
-    to: mail, // 接收者邮箱，多个邮箱用逗号间隔
-    subject: '发送验证注册码', // 标题
-    text: '旅游社交网站,注册账号', // 文本内容
-    html: `<h2>旅游社交网站</h2><p>注册账号</p><p>您的验证码：${code} （3分钟内有效）</p>` // 页面内容
-    // attachments: [{//发送文件
-    //      filename: 'index.html', //文件名字
-    //      path: './index.html' //文件路径
-    //  },
-    //  {
-    //      filename: 'sendEmail.js', //文件名字
-    //      content: 'sendEmail.js' //文件路径
-    //  }
-    // ]
-  };
+  if (type === 1) {
+    mailOptions = {
+      from: `"游乐记" <${Email.smtp.user}>`, // 发送方
+      to: mail, // 接收者邮箱，多个邮箱用逗号间隔
+      subject: '发送注册验证码', // 标题
+      text: '游乐记,注册账号', // 文本内容
+      html: `<h2>游乐记</h2><p>注册账号</p><p>您的验证码：${code} （3分钟内有效）</p>` // 页面内容
+      // attachments: [{//发送文件
+      //      filename: 'index.html', //文件名字
+      //      path: './index.html' //文件路径
+      //  },
+      //  {
+      //      filename: 'sendEmail.js', //文件名字
+      //      content: 'sendEmail.js' //文件路径
+      //  }
+      // ]
+    };
+  } else {
+    mailOptions = {
+      from: `"游乐记" <${Email.smtp.user}>`, // 发送方
+      to: mail, // 接收者邮箱，多个邮箱用逗号间隔
+      subject: '发送忘记密码验证码', // 标题
+      text: '游乐记,忘记密码', // 文本内容
+      html: `<h2>游乐记</h2><p>忘记密码</p><p>您的验证码：${code} （3分钟内有效）</p>` // 页面内容
+    };
+  }
 
   // 发送函数
   transporter.sendMail(mailOptions, (error, info) => {

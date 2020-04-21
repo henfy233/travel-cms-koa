@@ -69,7 +69,7 @@ class BannerDao {
    */
   async getBanners () {
     let sql =
-    ' SELECT b.title, b.img, b.url, b.date FROM banner b ORDER BY b.create_time DESC ';
+    ' SELECT b.title, b.img, b.url, b.date FROM banner b WHERE b.delete_time IS NULL ORDER BY b.create_time DESC ';
     let banners = await db.query(
       sql,
       {
